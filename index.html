@@ -1,54 +1,506 @@
+```html
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b0e14">
-<title>CatracVoice</title>
-<style>
-*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b0e14;color:#f1f4fa}
-:root{--a:#5865f2;--bg:#181d27;--side:#11151d;--dark:#070a0f;--line:#2b3442;--muted:#8d98aa}
-button,input{font:inherit}button{cursor:pointer}
-#login{height:100vh;display:grid;place-items:center;background:radial-gradient(circle at top,#303b7c,#141827 40%,#070a0f 80%)}
-.box{width:min(430px,92%);padding:35px;background:#121721;border:1px solid #30394a;border-radius:18px;box-shadow:0 30px 90px #0009}
-.logo{width:65px;height:65px;display:grid;place-items:center;border-radius:18px;background:var(--a);font-weight:900}.box h1{margin:20px 0 7px}.box p{color:var(--muted)}
-label{display:block;margin-top:18px;font-size:12px;font-weight:800;color:#aeb7c7}input{width:100%;margin-top:7px;padding:13px;border:1px solid #30394a;border-radius:8px;background:#090d14;color:white;outline:0}.login{width:100%;margin-top:22px;padding:13px;border:0;border-radius:8px;background:var(--a);color:white;font-weight:800}.demo{margin-top:17px;font-size:10px;color:#687386}
-#app{display:none;height:100vh;grid-template-columns:70px 245px minmax(0,1fr) 230px}
-.servers{background:var(--dark);display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 0}.server{width:46px;height:46px;border:0;border-radius:15px;background:#1b222e;color:#fff;font-weight:900}.server.active{background:var(--a)}.server.add{background:transparent;border:1px dashed #374152;font-size:23px}
-.sidebar{display:flex;flex-direction:column;background:var(--side);border-right:1px solid var(--line);min-width:0}.workspace{height:64px;padding:0 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.workspace button,.user button,.category button{background:0;border:0;color:#9da9ba}.workspace-title{font-weight:800}.workspace-sub{display:block;color:var(--muted);font-size:10px}.channels{flex:1;overflow:auto;padding:16px 9px}.category{display:flex;justify-content:space-between;padding:0 8px 7px;color:#707c90;font-size:10px;font-weight:900}.channel{width:100%;display:flex;gap:8px;padding:9px 10px;margin:2px 0;border:0;border-radius:7px;background:0;color:#909caf;text-align:left}.channel:hover,.channel.active{background:#293141;color:#fff}.channel-icon{color:#69758a;font-size:18px}.voice{margin-top:22px}.voice-room{opacity:.7}
-.user{display:flex;align-items:center;gap:9px;padding:10px;background:#0d1118;border-top:1px solid var(--line)}.avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:var(--a);color:white;font-weight:800;flex:none}.green{background:#22a96b}.orange{background:#df8639}.purple{background:#8559e8}.user-info{min-width:0;flex:1}.user-info strong{display:block;font-size:13px}.status{color:#3dcc83;font-size:9px}
-.chat{min-width:0;display:flex;flex-direction:column;background:var(--bg)}.header{height:64px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--line)}.title{display:flex;align-items:center;gap:9px}.hash{color:#66748a;font-size:25px}.title strong{font-size:15px}.title span{display:block;color:#707d91;font-size:10px}.actions{margin-left:auto;display:flex;gap:3px}.actions button{padding:9px;border:0;border-radius:7px;background:0;color:#9da9ba;font-size:17px}.actions button:hover{background:#252c38;color:white}.mobile{display:none;background:0;border:0;color:white;font-size:20px;margin-right:10px}
-.messages{flex:1;overflow:auto;padding:22px 18px}.welcome{padding:25px 10px;margin-bottom:12px;border-bottom:1px solid var(--line)}.welcome-icon{width:50px;height:50px;display:grid;place-items:center;border-radius:50%;background:#293141;font-size:24px}.welcome h2{margin:15px 0 6px;font-size:21px}.welcome p{margin:0;color:var(--muted);font-size:13px}.msg{display:flex;gap:11px;padding:7px 9px;border-radius:7px}.msg:hover{background:#fff1}.meta{display:flex;gap:8px;align-items:baseline}.meta strong{font-size:13px}.meta time{color:#69758a;font-size:9px}.text{margin:3px 0 0;color:#d2d8e4;font-size:13px;line-height:1.45;overflow-wrap:anywhere}.composer{display:flex;align-items:center;margin:6px 18px 18px;padding:5px 7px;border-radius:9px;background:#202632}.composer button{width:35px;height:35px;border:0;background:0;color:#99a5b7;font-size:18px}.composer input{flex:1;margin:0;border:0;background:0;padding:9px}
-.members{background:var(--side);border-left:1px solid var(--line);padding:18px 13px}.members-title{margin:5px 6px 15px;color:#6d798c;font-size:10px;font-weight:900}.member{display:flex;align-items:center;gap:9px;padding:7px 5px}.mi{flex:1}.mi strong,.mi span{display:block}.mi strong{font-size:12px}.mi span{color:#778398;font-size:9px}.dot{width:8px;height:8px;border-radius:50%;background:#3dcc83}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:#000b;z-index:20}.call{position:relative;width:min(760px,100%);padding:28px;background:#10151e;border:1px solid #303b4c;border-radius:18px;text-align:center}.close{position:absolute;right:14px;top:12px;background:0;border:0;color:#9da8b9;font-size:27px}.video{min-height:230px;margin:20px 0;display:flex;align-items:center;justify-content:center;background:#070a0f;border-radius:12px}.video video{max-width:100%;max-height:280px;display:none;border-radius:10px}.controls{display:flex;justify-content:center;gap:9px}.controls button{width:46px;height:46px;border:0;border-radius:50%;background:#293344;color:#fff;font-size:17px}.controls .end{background:#ed5968}.toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,20px);padding:11px 17px;border-radius:8px;background:#232d3c;color:white;opacity:0;transition:.2s;pointer-events:none;z-index:50}.toast.show{opacity:1;transform:translate(-50%,0)}
-@media(max-width:1050px){#app{grid-template-columns:70px 230px minmax(0,1fr)}.members{display:none}}@media(max-width:700px){#app{grid-template-columns:1fr}.servers,.sidebar{display:none}.mobile{display:block}.header{padding:0 10px}.title span{display:none}.messages{padding:15px 8px}.composer{margin:5px 9px 10px}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b0e14">
+  <title>CatracVoice</title>
+
+  <!-- CSS externo -->
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<section id="login"><div class="box"><div class="logo">CV</div><h1>CatracVoice</h1><p>Habla, juega y comparte con tus amigos.</p><form id="loginForm"><label>CORREO<input id="email" type="email" placeholder="tu@email.com" required></label><label>CONTRASEÑA<input id="pass" type="password" minlength="8" placeholder="Contraseña" required></label><button class="login">Entrar</button></form><div class="demo">Interfaz de prueba. El chat y las cuentas reales se conectarán después.</div></div></section>
+
+<section id="login">
+  <div class="box">
+    <div class="logo">CV</div>
+
+    <h1>CatracVoice</h1>
+
+    <p>Habla, juega y comparte con tus amigos.</p>
+
+    <form id="loginForm">
+
+      <label>
+        CORREO
+        <input
+          id="email"
+          type="email"
+          placeholder="tu@email.com"
+          required
+        >
+      </label>
+
+      <label>
+        CONTRASEÑA
+        <input
+          id="pass"
+          type="password"
+          minlength="8"
+          placeholder="Contraseña"
+          required
+        >
+      </label>
+
+      <button class="login">
+        Entrar
+      </button>
+
+    </form>
+
+    <div class="demo">
+      Interfaz de prueba. El chat y las cuentas reales se conectarán después.
+    </div>
+  </div>
+</section>
+
+
 <div id="app">
-<aside class="servers"><button class="server active">CV</button><button class="server">🎮</button><button class="server">⚽</button><button class="server">🎵</button><button class="server add">+</button></aside>
-<aside class="sidebar"><header class="workspace"><div><div class="workspace-title">CatracVoice</div><span class="workspace-sub">Grupo privado</span></div><button>⋯</button></header><div class="channels"><div class="category"><span>CANALES DE TEXTO</span><button id="add">+</button></div><button class="channel active" data-c="general"><span class="channel-icon">#</span>general</button><button class="channel" data-c="gaming"><span class="channel-icon">#</span>gaming</button><button class="channel" data-c="planes"><span class="channel-icon">#</span>planes</button><div class="category voice"><span>CANALES DE VOZ</span></div><button class="channel voice-room" id="voiceRoom">🔊 Sala general</button></div><footer class="user"><div class="avatar">T</div><div class="user-info"><strong id="name">Tú</strong><span class="status">● En línea</span></div><button id="logout">↪</button></footer></aside>
-<main class="chat"><header class="header"><button class="mobile">☰</button><div class="title"><span class="hash">#</span><div><strong id="channel">general</strong><span>Habla con tus amigos</span></div></div><div class="actions"><button id="call" title="Llamada">📞</button><button id="videoCall" title="Vídeo">📹</button><button id="screen" title="Compartir pantalla">🖥️</button><button id="membersBtn" title="Miembros">👥</button></div></header><section class="messages" id="messages"></section><form class="composer" id="form"><button type="button" id="plus">+</button><input id="message" maxlength="1000" placeholder="Escribe un mensaje..." autocomplete="off"><button type="button" id="emoji">☺</button><button>➤</button></form></main>
-<aside class="members" id="members"><div class="members-title">MIEMBROS — 4</div><div class="member"><div class="avatar green">A</div><div class="mi"><strong>Alex</strong><span>En línea</span></div><i class="dot"></i></div><div class="member"><div class="avatar purple">M</div><div class="mi"><strong>Mario</strong><span>Jugando</span></div><i class="dot"></i></div><div class="member"><div class="avatar orange">L</div><div class="mi"><strong>Laura</strong><span>En línea</span></div><i class="dot"></i></div><div class="member"><div class="avatar">T</div><div class="mi"><strong>Tú</strong><span>En línea</span></div><i class="dot"></i></div></aside>
+
+  <!-- SERVIDORES -->
+  <aside class="servers">
+
+    <button class="server active">
+      CV
+    </button>
+
+    <button class="server">
+      🎮
+    </button>
+
+    <button class="server">
+      ⚽
+    </button>
+
+    <button class="server">
+      🎵
+    </button>
+
+    <button class="server add">
+      +
+    </button>
+
+  </aside>
+
+
+  <!-- BARRA LATERAL -->
+  <aside class="sidebar">
+
+    <header class="workspace">
+
+      <div>
+        <div class="workspace-title">
+          CatracVoice
+        </div>
+
+        <span class="workspace-sub">
+          Grupo privado
+        </span>
+      </div>
+
+      <button>
+        ⋯
+      </button>
+
+    </header>
+
+
+    <div class="channels">
+
+      <div class="category">
+
+        <span>
+          CANALES DE TEXTO
+        </span>
+
+        <button id="add">
+          +
+        </button>
+
+      </div>
+
+
+      <button
+        class="channel active"
+        data-c="general"
+      >
+        <span class="channel-icon">
+          #
+        </span>
+
+        general
+      </button>
+
+
+      <button
+        class="channel"
+        data-c="gaming"
+      >
+        <span class="channel-icon">
+          #
+        </span>
+
+        gaming
+      </button>
+
+
+      <button
+        class="channel"
+        data-c="planes"
+      >
+        <span class="channel-icon">
+          #
+        </span>
+
+        planes
+      </button>
+
+
+      <div class="category voice">
+
+        <span>
+          CANALES DE VOZ
+        </span>
+
+      </div>
+
+
+      <button
+        class="channel voice-room"
+        id="voiceRoom"
+      >
+        🔊 Sala general
+      </button>
+
+    </div>
+
+
+    <!-- USUARIO -->
+    <footer class="user">
+
+      <div class="avatar">
+        T
+      </div>
+
+      <div class="user-info">
+
+        <strong id="name">
+          Tú
+        </strong>
+
+        <span class="status">
+          ● En línea
+        </span>
+
+      </div>
+
+      <button id="logout">
+        ↪
+      </button>
+
+    </footer>
+
+  </aside>
+
+
+  <!-- CHAT -->
+  <main class="chat">
+
+    <header class="header">
+
+      <button class="mobile">
+        ☰
+      </button>
+
+
+      <div class="title">
+
+        <span class="hash">
+          #
+        </span>
+
+        <div>
+
+          <strong id="channel">
+            general
+          </strong>
+
+          <span>
+            Habla con tus amigos
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="actions">
+
+        <button
+          id="call"
+          title="Llamada"
+        >
+          📞
+        </button>
+
+        <button
+          id="videoCall"
+          title="Vídeo"
+        >
+          📹
+        </button>
+
+        <button
+          id="screen"
+          title="Compartir pantalla"
+        >
+          🖥️
+        </button>
+
+        <button
+          id="membersBtn"
+          title="Miembros"
+        >
+          👥
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <!-- MENSAJES -->
+    <section
+      class="messages"
+      id="messages"
+    ></section>
+
+
+    <!-- ESCRIBIR MENSAJE -->
+    <form
+      class="composer"
+      id="form"
+    >
+
+      <button
+        type="button"
+        id="plus"
+      >
+        +
+      </button>
+
+      <input
+        id="message"
+        maxlength="1000"
+        placeholder="Escribe un mensaje..."
+        autocomplete="off"
+      >
+
+      <button
+        type="button"
+        id="emoji"
+      >
+        ☺
+      </button>
+
+      <button>
+        ➤
+      </button>
+
+    </form>
+
+  </main>
+
+
+  <!-- MIEMBROS -->
+  <aside
+    class="members"
+    id="members"
+  >
+
+    <div class="members-title">
+      MIEMBROS — 4
+    </div>
+
+
+    <div class="member">
+
+      <div class="avatar green">
+        A
+      </div>
+
+      <div class="mi">
+
+        <strong>
+          Alex
+        </strong>
+
+        <span>
+          En línea
+        </span>
+
+      </div>
+
+      <i class="dot"></i>
+
+    </div>
+
+
+    <div class="member">
+
+      <div class="avatar purple">
+        M
+      </div>
+
+      <div class="mi">
+
+        <strong>
+          Mario
+        </strong>
+
+        <span>
+          Jugando
+        </span>
+
+      </div>
+
+      <i class="dot"></i>
+
+    </div>
+
+
+    <div class="member">
+
+      <div class="avatar orange">
+        L
+      </div>
+
+      <div class="mi">
+
+        <strong>
+          Laura
+        </strong>
+
+        <span>
+          En línea
+        </span>
+
+      </div>
+
+      <i class="dot"></i>
+
+    </div>
+
+
+    <div class="member">
+
+      <div class="avatar">
+        T
+      </div>
+
+      <div class="mi">
+
+        <strong>
+          Tú
+        </strong>
+
+        <span>
+          En línea
+        </span>
+
+      </div>
+
+      <i class="dot"></i>
+
+    </div>
+
+  </aside>
+
 </div>
-<div class="modal" id="modal"><div class="call"><button class="close" id="close">×</button><h2 id="callTitle">Videollamada</h2><p id="callStatus">Modo de prueba local</p><div class="video"><div id="placeholder">👤 Tú</div><video id="screenVideo" autoplay muted playsinline></video></div><div class="controls"><button id="mute">🎤</button><button id="camera">📹</button><button id="modalScreen">🖥️</button><button class="end" id="hang">☎</button></div></div></div>
-<div class="toast" id="toast"></div>
-<script>
-const data={general:[["Alex","A","green","11:42","¡Bienvenidos a CatracVoice! 👋"],["Mario","M","purple","11:44","Tiene muy buena pinta 😎"],["Laura","L","orange","11:47","¿Probamos a organizar aquí los planes del finde?"]],gaming:[["Mario","M","purple","11:20","¿Jugamos esta tarde? 🎮"],["Alex","A","green","11:22","Yo me apunto."]],planes:[["Laura","L","orange","10:58","He creado este canal para organizar los planes."],["Alex","A","green","11:02","Genial 👍"]]};let current="general",stream=null;
-const $=x=>document.getElementById(x);function esc(x){const d=document.createElement("div");d.textContent=x;return d.innerHTML}function toast(x){const e=$("toast");e.textContent=x;e.classList.add("show");clearTimeout(window.tt);window.tt=setTimeout(()=>e.classList.remove("show"),2200)}
-function render(){const c=$("messages");c.innerHTML='<div class="welcome"><div class="welcome-icon">#</div><h2>¡Bienvenido a #'+esc(current)+'!</h2><p>Este es el comienzo del canal.</p></div>';data[current].forEach(m=>{const a=document.createElement("article");a.className="msg";a.innerHTML='<div class="avatar '+m[2]+'">'+esc(m[1])+'</div><div><div class="meta"><strong>'+esc(m[0])+'</strong><time>'+esc(m[3])+'</time></div><p class="text">'+esc(m[4])+'</p></div>';c.appendChild(a)})}
-$("loginForm").onsubmit=e=>{e.preventDefault();$("name").textContent=$("email").value.split("@")[0].replace(/[._-]/g," ")||"Tú";$("login").style.display="none";$("app").style.display="grid";render()};
-$("logout").onclick=()=>{$("app").style.display="none";$("login").style.display="grid"};
-document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{current=b.dataset.c;document.querySelectorAll("[data-c]").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("channel").textContent=current;render()});
-$("form").onsubmit=e=>{e.preventDefault();let i=$("message"),t=i.value.trim();if(!t)return;data[current].push(["T","T","",""+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),t]);i.value="";render()};
-$("emoji").onclick=()=>{$("message").value+=" 😊";$("message").focus()};$("plus").onclick=()=>toast("Los archivos se añadirán en la versión con almacenamiento.");
-function openCall(title){$("modal").style.display="flex";$("callTitle").textContent=title;$("callStatus").textContent="Modo de prueba local";}
-$("call").onclick=()=>openCall("Llamada de voz");$("videoCall").onclick=()=>openCall("Videollamada");$("voiceRoom").onclick=()=>openCall("Llamada de voz");$("close").onclick=()=>{$("modal").style.display="none";stopScreen()};$("hang").onclick=()=>{$("modal").style.display="none";stopScreen()};
-let mic=true,cam=true;$("mute").onclick=function(){mic=!mic;this.textContent=mic?"🎤":"🔇";toast(mic?"Micrófono activado":"Micrófono silenciado")};$("camera").onclick=function(){cam=!cam;this.textContent=cam?"📹":"🚫";toast(cam?"Cámara activada":"Cámara desactivada")};
-async function share(){if(!navigator.mediaDevices?.getDisplayMedia){toast("Tu navegador no permite compartir pantalla.");return}try{stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});$("modal").style.display="flex";$("callTitle").textContent="Compartiendo pantalla";$("callStatus").textContent="Solo visible para ti en esta demo";$("placeholder").style.display="none";$("screenVideo").style.display="block";$("screenVideo").srcObject=stream;stream.getVideoTracks()[0].onended=stopScreen}catch(e){toast("Compartir pantalla cancelado.")}}
-function stopScreen(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$("screenVideo").srcObject=null;$("screenVideo").style.display="none";$("placeholder").style.display="block"}
-$("screen").onclick=share;$("modalScreen").onclick=share;$("membersBtn").onclick=()=>toast("La lista de miembros está en el panel derecho.");$("add").onclick=()=>toast("Los canales reales se añadirán con la base de datos.");render();
-</script>
+
+
+<!-- LLAMADA / VÍDEO -->
+<div
+  class="modal"
+  id="modal"
+>
+
+  <div class="call">
+
+    <button
+      class="close"
+      id="close"
+    >
+      ×
+    </button>
+
+
+    <h2 id="callTitle">
+      Videollamada
+    </h2>
+
+
+    <p id="callStatus">
+      Modo de prueba local
+    </p>
+
+
+    <div class="video">
+
+      <div id="placeholder">
+        👤 Tú
+      </div>
+
+      <video
+        id="screenVideo"
+        autoplay
+        muted
+        playsinline
+      ></video>
+
+    </div>
+
+
+    <div class="controls">
+
+      <button id="mute">
+        🎤
+      </button>
+
+      <button id="camera">
+        📹
+      </button>
+
+      <button id="modalScreen">
+        🖥️
+      </button>
+
+      <button
+        class="end"
+        id="hang"
+      >
+        ☎
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- TOAST -->
+<div
+  class="toast"
+  id="toast"
+></div>
+
+
+<!-- JAVASCRIPT -->
+<script src="app.js"></script>
+
 </body>
 </html>
+```
