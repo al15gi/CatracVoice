@@ -1,2395 +1,608 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#313338">
-<title>CatracVoice</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111318">
 
-<style>
-* {
-  box-sizing: border-box;
-}
+  <title>CatracVoice</title>
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-}
-
-body {
-  overflow: hidden;
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  background: #313338;
-  color: #f2f3f5;
-}
-
-/* =========================
-   VARIABLES
-========================= */
-
-:root {
-  --server: #1e1f22;
-  --sidebar: #2b2d31;
-  --sidebar-hover: #35373c;
-  --chat: #313338;
-  --members: #2b2d31;
-  --input: #383a40;
-  --border: #1e1f22;
-
-  --text: #f2f3f5;
-  --muted: #949ba4;
-
-  --accent: #5865f2;
-  --accent-hover: #4752c4;
-
-  --green: #23a559;
-  --red: #f23f42;
-}
-
-/* =========================
-   GENERAL
-========================= */
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  border: 0;
-  cursor: pointer;
-}
-
-button:focus,
-input:focus {
-  outline: none;
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* =========================
-   LOGIN
-========================= */
-
-#loginScreen {
-  position: fixed;
-  inset: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background:
-    radial-gradient(
-      circle at 50% 20%,
-      rgba(88, 101, 242, 0.35),
-      transparent 45%
-    ),
-    #1e1f22;
-}
-
-.login-card {
-  width: min(430px, calc(100% - 30px));
-
-  padding: 32px;
-
-  background: #313338;
-
-  border-radius: 8px;
-
-  box-shadow:
-    0 20px 60px rgba(0,0,0,.45);
-}
-
-.logo {
-  width: 64px;
-  height: 64px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin: 0 auto 20px;
-
-  background: var(--accent);
-
-  border-radius: 18px;
-
-  color: white;
-
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.login-card h1 {
-  margin: 0;
-
-  text-align: center;
-
-  font-size: 25px;
-}
-
-.login-card .subtitle {
-  margin: 8px 0 25px;
-
-  color: var(--muted);
-
-  text-align: center;
-}
-
-.login-label {
-  display: block;
-
-  margin-top: 18px;
-
-  color: #b5bac1;
-
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.login-input {
-  width: 100%;
-
-  height: 44px;
-
-  margin-top: 8px;
-
-  padding: 0 12px;
-
-  background: #1e1f22;
-
-  border: 1px solid #1e1f22;
-
-  border-radius: 4px;
-
-  color: white;
-}
-
-.login-input:focus {
-  border-color: var(--accent);
-}
-
-.login-button {
-  width: 100%;
-
-  height: 44px;
-
-  margin-top: 22px;
-
-  background: var(--accent);
-
-  border-radius: 4px;
-
-  color: white;
-
-  font-weight: 600;
-}
-
-.login-button:hover {
-  background: var(--accent-hover);
-}
-
-.login-note {
-  margin-top: 18px;
-
-  color: var(--muted);
-
-  font-size: 11px;
-
-  text-align: center;
-}
-
-/* =========================
-   APP
-========================= */
-
-#app {
-  display: grid;
-
-  width: 100%;
-  height: 100vh;
-
-  grid-template-columns:
-    72px
-    240px
-    minmax(0, 1fr)
-    240px;
-}
-
-/* =========================
-   SERVERS
-========================= */
-
-.servers {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  gap: 10px;
-
-  padding: 12px 0;
-
-  background: var(--server);
-}
-
-.server {
-  position: relative;
-
-  width: 48px;
-  height: 48px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: #313338;
-
-  border-radius: 16px;
-
-  color: white;
-
-  font-weight: 700;
-
-  transition:
-    border-radius .15s,
-    background .15s;
-}
-
-.server:hover,
-.server.active {
-  background: var(--accent);
-  border-radius: 14px;
-}
-
-.server::before {
-  content: "";
-
-  position: absolute;
-
-  left: -12px;
-
-  width: 4px;
-  height: 0;
-
-  background: white;
-
-  border-radius: 0 4px 4px 0;
-
-  transition: height .15s;
-}
-
-.server:hover::before,
-.server.active::before {
-  height: 20px;
-}
-
-.server-add {
-  color: #23a559;
-}
-
-.server-add:hover {
-  background: #23a559;
-  color: white;
-}
-
-/* =========================
-   CHANNEL SIDEBAR
-========================= */
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-
-  min-width: 0;
-
-  background: var(--sidebar);
-}
-
-.workspace {
-  height: 48px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 0 16px;
-
-  border-bottom: 1px solid #202225;
-
-  font-weight: 700;
-}
-
-.workspace button {
-  background: transparent;
-
-  color: #b5bac1;
-
-  font-size: 20px;
-}
-
-.workspace button:hover {
-  color: white;
-}
-
-.channels {
-  flex: 1;
-
-  padding: 12px 8px;
-
-  overflow-y: auto;
-}
-
-.category {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 8px;
-
-  color: #949ba4;
-
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.category button {
-  background: transparent;
-
-  color: #949ba4;
-
-  font-size: 18px;
-}
-
-.category button:hover {
-  color: white;
-}
-
-.channel {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-
-  height: 36px;
-
-  margin: 2px 0;
-
-  padding: 0 10px;
-
-  background: transparent;
-
-  border-radius: 4px;
-
-  color: #949ba4;
-
-  text-align: left;
-}
-
-.channel:hover {
-  background: var(--sidebar-hover);
-
-  color: #dbdee1;
-}
-
-.channel.active {
-  background: #404249;
-
-  color: white;
-}
-
-.channel-icon {
-  color: #949ba4;
-
-  font-size: 20px;
-}
-
-.voice-title {
-  margin-top: 20px;
-}
-
-.user-panel {
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-
-  min-height: 52px;
-
-  padding: 8px;
-
-  background: #232428;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-
-  flex: 0 0 36px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: var(--accent);
-
-  color: white;
-
-  font-weight: 700;
-}
-
-.avatar.green {
-  background: #23a559;
-}
-
-.avatar.purple {
-  background: #9b59b6;
-}
-
-.avatar.orange {
-  background: #e67e22;
-}
-
-.user-info {
-  min-width: 0;
-
-  flex: 1;
-}
-
-.user-info strong {
-  display: block;
-
-  overflow: hidden;
-
-  white-space: nowrap;
-
-  text-overflow: ellipsis;
-
-  font-size: 12px;
-}
-
-.user-status {
-  color: #23a559;
-
-  font-size: 10px;
-}
-
-.user-button {
-  width: 30px;
-  height: 30px;
-
-  background: transparent;
-
-  color: #b5bac1;
-}
-
-.user-button:hover {
-  background: #35373c;
-
-  color: white;
-}
-
-/* =========================
-   CHAT
-========================= */
-
-.chat {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  background: var(--chat);
-}
-
-.chat-header {
-  height: 48px;
-
-  display: flex;
-  align-items: center;
-
-  padding: 0 16px;
-
-  border-bottom: 1px solid #26272c;
-
-  box-shadow: 0 1px 0 rgba(0,0,0,.15);
-}
-
-.mobile-menu {
-  display: none;
-
-  margin-right: 10px;
-
-  background: transparent;
-
-  color: white;
-
-  font-size: 20px;
-}
-
-.channel-title {
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-}
-
-.channel-title .hash {
-  color: #949ba4;
-
-  font-size: 25px;
-}
-
-.channel-title strong {
-  font-size: 15px;
-}
-
-.channel-topic {
-  margin-left: 12px;
-
-  padding-left: 12px;
-
-  border-left: 1px solid #404249;
-
-  color: #949ba4;
-
-  font-size: 12px;
-}
-
-.header-actions {
-  display: flex;
-
-  gap: 4px;
-
-  margin-left: auto;
-}
-
-.header-button {
-  width: 34px;
-  height: 34px;
-
-  background: transparent;
-
-  border-radius: 4px;
-
-  color: #b5bac1;
-
-  font-size: 17px;
-}
-
-.header-button:hover {
-  background: #383a40;
-
-  color: white;
-}
-
-/* =========================
-   MESSAGES
-========================= */
-
-.messages {
-  flex: 1;
-
-  overflow-y: auto;
-
-  padding: 18px 0;
-}
-
-.welcome {
-  padding: 20px;
-
-  margin-bottom: 15px;
-}
-
-.welcome-icon {
-  width: 52px;
-  height: 52px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: #404249;
-
-  border-radius: 50%;
-
-  color: #dbdee1;
-
-  font-size: 25px;
-}
-
-.welcome h2 {
-  margin: 14px 0 5px;
-
-  font-size: 22px;
-}
-
-.welcome p {
-  margin: 0;
-
-  color: #949ba4;
-
-  font-size: 13px;
-}
-
-.message {
-  display: flex;
-
-  gap: 12px;
-
-  padding: 5px 20px;
-
-  transition: background .1s;
-}
-
-.message:hover {
-  background: rgba(4,4,5,.07);
-}
-
-.message-info {
-  min-width: 0;
-}
-
-.message-meta {
-  display: flex;
-  align-items: baseline;
-
-  gap: 8px;
-}
-
-.message-meta strong {
-  font-size: 14px;
-}
-
-.message-meta time {
-  color: #949ba4;
-
-  font-size: 10px;
-}
-
-.message-text {
-  margin: 2px 0 0;
-
-  color: #dbdee1;
-
-  font-size: 14px;
-
-  overflow-wrap: anywhere;
-}
-
-/* =========================
-   COMPOSER
-========================= */
-
-.composer {
-  display: flex;
-  align-items: center;
-
-  margin: 0 16px 18px;
-
-  min-height: 44px;
-
-  padding: 0 8px;
-
-  background: #383a40;
-
-  border-radius: 8px;
-}
-
-.composer button {
-  width: 34px;
-  height: 34px;
-
-  background: transparent;
-
-  color: #b5bac1;
-
-  font-size: 18px;
-}
-
-.composer button:hover {
-  color: white;
-}
-
-.composer input {
-  flex: 1;
-
-  min-width: 0;
-
-  height: 42px;
-
-  padding: 0 8px;
-
-  background: transparent;
-
-  border: 0;
-
-  color: white;
-}
-
-.composer input::placeholder {
-  color: #949ba4;
-}
-
-/* =========================
-   MEMBERS
-========================= */
-
-.members {
-  min-width: 0;
-
-  padding: 18px 10px;
-
-  background: var(--members);
-
-  overflow-y: auto;
-}
-
-.members-title {
-  margin: 5px 8px 12px;
-
-  color: #949ba4;
-
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.member {
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  padding: 6px;
-
-  border-radius: 4px;
-}
-
-.member:hover {
-  background: #35373c;
-}
-
-.member-info {
-  min-width: 0;
-}
-
-.member-info strong {
-  display: block;
-
-  overflow: hidden;
-
-  white-space: nowrap;
-
-  text-overflow: ellipsis;
-
-  font-size: 13px;
-}
-
-.member-info span {
-  color: #949ba4;
-
-  font-size: 10px;
-}
-
-.online-dot {
-  width: 8px;
-  height: 8px;
-
-  margin-left: auto;
-
-  background: #23a559;
-
-  border-radius: 50%;
-}
-
-/* =========================
-   MODAL
-========================= */
-
-.modal {
-  position: fixed;
-  inset: 0;
-
-  z-index: 100;
-
-  display: none;
-
-  align-items: center;
-  justify-content: center;
-
-  padding: 20px;
-
-  background: rgba(0,0,0,.75);
-}
-
-.modal.open {
-  display: flex;
-}
-
-.modal-box {
-  position: relative;
-
-  width: min(700px, 100%);
-
-  padding: 25px;
-
-  background: #313338;
-
-  border-radius: 8px;
-
-  box-shadow: 0 20px 70px rgba(0,0,0,.6);
-
-  text-align: center;
-}
-
-.modal-box h2 {
-  margin: 0 0 5px;
-}
-
-.modal-box p {
-  margin: 0;
-
-  color: #949ba4;
-}
-
-.video-area {
-  min-height: 250px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin: 20px 0;
-
-  background: #1e1f22;
-
-  border-radius: 8px;
-
-  color: #949ba4;
-}
-
-.video-area video {
-  display: none;
-
-  max-width: 100%;
-  max-height: 350px;
-}
-
-.modal-controls {
-  display: flex;
-  justify-content: center;
-
-  gap: 10px;
-}
-
-.modal-button {
-  width: 46px;
-  height: 46px;
-
-  background: #4e5058;
-
-  border-radius: 50%;
-
-  color: white;
-
-  font-size: 17px;
-}
-
-.modal-button:hover {
-  background: #5c5f69;
-}
-
-.modal-button.end {
-  background: var(--red);
-}
-
-.close-modal {
-  position: absolute;
-
-  top: 12px;
-  right: 14px;
-
-  background: transparent;
-
-  color: #b5bac1;
-
-  font-size: 25px;
-}
-
-/* =========================
-   TOAST
-========================= */
-
-.toast {
-  position: fixed;
-
-  left: 50%;
-  bottom: 25px;
-
-  z-index: 200;
-
-  padding: 11px 17px;
-
-  background: #111214;
-
-  border-radius: 5px;
-
-  color: white;
-
-  box-shadow: 0 5px 20px rgba(0,0,0,.4);
-
-  transform: translate(-50%, 20px);
-
-  opacity: 0;
-
-  pointer-events: none;
-
-  transition: .2s;
-}
-
-.toast.show {
-  opacity: 1;
-
-  transform: translate(-50%, 0);
-}
-
-/* =========================
-   MOBILE
-========================= */
-
-@media (max-width: 1100px) {
-
-  #app {
-    grid-template-columns:
-      72px
-      230px
-      minmax(0, 1fr);
-  }
-
-  .members {
-    display: none;
-  }
-
-}
-
-@media (max-width: 750px) {
-
-  #app {
-    display: block;
-  }
-
-  .servers,
-  .sidebar {
-    display: none;
-  }
-
-  .chat {
-    width: 100%;
-    height: 100vh;
-  }
-
-  .mobile-menu {
-    display: block;
-  }
-
-  .channel-topic {
-    display: none;
-  }
-
-  .messages {
-    padding: 10px 0;
-  }
-
-  .message {
-    padding: 5px 10px;
-  }
-
-  .composer {
-    margin: 0 8px 8px;
-  }
-
-}
-
-/* =========================
-   SCROLLBAR
-========================= */
-
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1a1b1e;
-
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #111214;
-}
-</style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<!-- =========================
-     LOGIN
-========================= -->
+  <!-- =========================
+       PANTALLA DE AUTENTICACIÓN
+       ========================= -->
 
-<section id="loginScreen">
+  <section id="authScreen" class="auth-screen">
 
-  <div class="login-card">
+    <div class="auth-card">
 
-    <div class="logo">
-      CV
-    </div>
+      <div class="brand-logo">
+        CV
+      </div>
 
-    <h1>Bienvenido a CatracVoice</h1>
+      <h1>CatracVoice</h1>
 
-    <p class="subtitle">
-      Entra para empezar a hablar con tus amigos.
-    </p>
+      <p class="auth-subtitle">
+        Habla, juega y comparte con tus amigos.
+      </p>
 
-    <form id="loginForm">
+      <form id="authForm">
 
-      <label class="login-label">
-        CORREO
+        <label for="email">
+          CORREO ELECTRÓNICO
+        </label>
 
         <input
           id="email"
-          class="login-input"
           type="email"
           placeholder="tu@email.com"
+          autocomplete="email"
           required
         >
 
-      </label>
-
-      <label class="login-label">
-        CONTRASEÑA
+        <label for="password">
+          CONTRASEÑA
+        </label>
 
         <input
           id="password"
-          class="login-input"
           type="password"
           placeholder="Contraseña"
-          minlength="4"
+          autocomplete="current-password"
+          minlength="8"
           required
         >
 
-      </label>
+        <button
+          type="submit"
+          class="primary-button"
+        >
+          Entrar
+        </button>
 
-      <button class="login-button" type="submit">
-        Iniciar sesión
+      </form>
+
+      <button
+        id="registerBtn"
+        class="secondary-button"
+        type="button"
+      >
+        Crear una cuenta
       </button>
 
-    </form>
+      <p class="auth-demo">
+        CatracVoice · versión inicial
+      </p>
 
-    <div class="login-note">
-      Demo local de CatracVoice. Las cuentas reales se conectarán posteriormente.
     </div>
 
-  </div>
-
-</section>
+  </section>
 
 
-<!-- =========================
-     APP
-========================= -->
+  <!-- =========================
+       APLICACIÓN
+       ========================= -->
 
-<div id="app" class="hidden">
+  <div id="app" class="app hidden">
 
-  <!-- SERVERS -->
+    <!-- SERVIDORES -->
 
-  <aside class="servers">
+    <aside class="server-sidebar">
 
-    <button class="server active">
-      CV
-    </button>
-
-    <button class="server">
-      🎮
-    </button>
-
-    <button class="server">
-      ⚽
-    </button>
-
-    <button class="server">
-      🎵
-    </button>
-
-    <button class="server server-add">
-      +
-    </button>
-
-  </aside>
-
-
-  <!-- SIDEBAR -->
-
-  <aside class="sidebar">
-
-    <header class="workspace">
-
-      <span>
-        CatracVoice
-      </span>
-
-      <button id="groupMenu">
-        ▾
+      <button
+        class="server active"
+        data-server="catrac"
+        title="CatracVoice"
+      >
+        CV
       </button>
 
-    </header>
+      <button
+        class="server"
+        data-server="gaming"
+        title="Gaming"
+      >
+        🎮
+      </button>
+
+      <button
+        class="server"
+        data-server="music"
+        title="Música"
+      >
+        🎵
+      </button>
+
+      <div class="server-separator"></div>
+
+      <button
+        id="addServer"
+        class="server add-server"
+        title="Añadir servidor"
+      >
+        +
+      </button>
+
+    </aside>
 
 
-    <div class="channels">
+    <!-- SIDEBAR DE CANALES -->
 
-      <div class="category">
+    <aside class="channel-sidebar">
 
-        <span>
-          CANALES DE TEXTO
-        </span>
+      <header class="workspace-header">
 
-        <button id="addChannel">
+        <div>
+          <strong>CatracVoice</strong>
+          <span>Servidor privado</span>
+        </div>
+
+        <button
+          id="groupMenu"
+          class="icon-button"
+          type="button"
+        >
+          ⋯
+        </button>
+
+      </header>
+
+
+      <div class="channel-list">
+
+        <!-- TEXTO -->
+
+        <div class="channel-category">
+
+          <span>
+            CANALES DE TEXTO
+          </span>
+
+          <button
+            id="addChannel"
+            type="button"
+          >
+            +
+          </button>
+
+        </div>
+
+
+        <button
+          class="channel active"
+          data-channel="general"
+          type="button"
+        >
+          <span class="channel-symbol">#</span>
+          <span>general</span>
+        </button>
+
+
+        <button
+          class="channel"
+          data-channel="gaming"
+          type="button"
+        >
+          <span class="channel-symbol">#</span>
+          <span>gaming</span>
+        </button>
+
+
+        <button
+          class="channel"
+          data-channel="planes"
+          type="button"
+        >
+          <span class="channel-symbol">#</span>
+          <span>planes</span>
+        </button>
+
+
+        <!-- VOZ -->
+
+        <div class="channel-category voice-category">
+
+          <span>
+            CANALES DE VOZ
+          </span>
+
+        </div>
+
+
+        <button
+          id="voiceChannel"
+          class="channel"
+          type="button"
+        >
+          <span class="channel-symbol">
+            🔊
+          </span>
+
+          <span>
+            Sala general
+          </span>
+        </button>
+
+      </div>
+
+
+      <!-- USUARIO -->
+
+      <footer class="user-panel">
+
+        <div
+          id="userAvatar"
+          class="avatar"
+        >
+          T
+        </div>
+
+        <div class="user-information">
+
+          <strong id="userName">
+            Tú
+          </strong>
+
+          <span>
+            ● En línea
+          </span>
+
+        </div>
+
+        <button
+          id="logoutBtn"
+          class="icon-button"
+          title="Cerrar sesión"
+          type="button"
+        >
+          ↪
+        </button>
+
+      </footer>
+
+    </aside>
+
+
+    <!-- CHAT -->
+
+    <main class="chat">
+
+      <!-- CABECERA -->
+
+      <header class="chat-header">
+
+        <button
+          id="mobileMenu"
+          class="mobile-menu"
+          type="button"
+        >
+          ☰
+        </button>
+
+
+        <div class="channel-title">
+
+          <span class="channel-title-symbol">
+            #
+          </span>
+
+          <div>
+
+            <strong id="channelTitle">
+              general
+            </strong>
+
+            <span>
+              Habla con tus amigos
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="chat-actions">
+
+          <button
+            id="voiceCallBtn"
+            type="button"
+            title="Llamada"
+          >
+            📞
+          </button>
+
+          <button
+            id="videoCallBtn"
+            type="button"
+            title="Videollamada"
+          >
+            📹
+          </button>
+
+          <button
+            id="screenShareBtn"
+            type="button"
+            title="Compartir pantalla"
+          >
+            🖥️
+          </button>
+
+          <button
+            id="membersBtn"
+            type="button"
+            title="Miembros"
+          >
+            👥
+          </button>
+
+        </div>
+
+      </header>
+
+
+      <!-- MENSAJES -->
+
+      <section
+        id="messages"
+        class="messages"
+      >
+
+      </section>
+
+
+      <!-- ESCRIBIR -->
+
+      <form
+        id="messageForm"
+        class="message-composer"
+      >
+
+        <button
+          id="attachBtn"
+          type="button"
+          title="Adjuntar archivo"
+        >
           +
         </button>
 
-      </div>
-
-
-      <button
-        class="channel active"
-        data-channel="general"
-      >
-
-        <span class="channel-icon">
-          #
-        </span>
-
-        general
-
-      </button>
-
-
-      <button
-        class="channel"
-        data-channel="gaming"
-      >
-
-        <span class="channel-icon">
-          #
-        </span>
-
-        gaming
-
-      </button>
-
-
-      <button
-        class="channel"
-        data-channel="planes"
-      >
-
-        <span class="channel-icon">
-          #
-        </span>
-
-        planes
-
-      </button>
-
-
-      <div class="category voice-title">
-
-        <span>
-          CANALES DE VOZ
-        </span>
-
-      </div>
-
-
-      <button
-        class="channel"
-        id="voiceChannel"
-      >
-
-        <span class="channel-icon">
-          🔊
-        </span>
-
-        Sala general
-
-      </button>
-
-    </div>
-
-
-    <footer class="user-panel">
-
-      <div
-        id="userAvatar"
-        class="avatar"
-      >
-        T
-      </div>
-
-      <div class="user-info">
-
-        <strong id="userName">
-          Tú
-        </strong>
-
-        <span class="user-status">
-          ● En línea
-        </span>
-
-      </div>
-
-      <button
-        id="logoutBtn"
-        class="user-button"
-        title="Cerrar sesión"
-      >
-        ↪
-      </button>
-
-    </footer>
-
-  </aside>
-
-
-  <!-- CHAT -->
-
-  <main class="chat">
-
-    <header class="chat-header">
-
-      <button
-        id="mobileMenu"
-        class="mobile-menu"
-      >
-        ☰
-      </button>
-
-
-      <div class="channel-title">
-
-        <span class="hash">
-          #
-        </span>
-
-        <strong id="channelTitle">
-          general
-        </strong>
-
-      </div>
-
-
-      <span class="channel-topic">
-        Habla con tus amigos
-      </span>
-
-
-      <div class="header-actions">
+        <input
+          id="messageInput"
+          type="text"
+          maxlength="1000"
+          autocomplete="off"
+          placeholder="Escribe un mensaje en #general..."
+        >
 
         <button
-          class="header-button"
-          id="voiceCallBtn"
-          title="Llamada"
+          id="emojiBtn"
+          type="button"
+          title="Emoji"
         >
-          📞
+          ☺
         </button>
 
         <button
-          class="header-button"
-          id="videoCallBtn"
-          title="Videollamada"
+          class="send-button"
+          type="submit"
+          title="Enviar"
+        >
+          ➤
+        </button>
+
+      </form>
+
+    </main>
+
+
+    <!-- MIEMBROS -->
+
+    <aside
+      id="membersPanel"
+      class="members-panel"
+    >
+
+      <div class="members-title">
+        MIEMBROS — 4
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar green">
+          A
+        </div>
+
+        <div class="member-information">
+
+          <strong>
+            Alex
+          </strong>
+
+          <span>
+            En línea
+          </span>
+
+        </div>
+
+        <i class="online"></i>
+
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar purple">
+          M
+        </div>
+
+        <div class="member-information">
+
+          <strong>
+            Mario
+          </strong>
+
+          <span>
+            Jugando
+          </span>
+
+        </div>
+
+        <i class="online"></i>
+
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar orange">
+          L
+        </div>
+
+        <div class="member-information">
+
+          <strong>
+            Laura
+          </strong>
+
+          <span>
+            En línea
+          </span>
+
+        </div>
+
+        <i class="online"></i>
+
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar">
+          T
+        </div>
+
+        <div class="member-information">
+
+          <strong>
+            Tú
+          </strong>
+
+          <span>
+            En línea
+          </span>
+
+        </div>
+
+        <i class="online"></i>
+
+      </div>
+
+    </aside>
+
+  </div>
+
+
+  <!-- =========================
+       LLAMADA
+       ========================= -->
+
+  <div
+    id="callModal"
+    class="modal hidden"
+  >
+
+    <div class="call-window">
+
+      <button
+        id="closeCall"
+        class="close-button"
+        type="button"
+      >
+        ×
+      </button>
+
+
+      <h2 id="callTitle">
+        Llamada de voz
+      </h2>
+
+      <p id="callStatus">
+        Preparando llamada...
+      </p>
+
+
+      <div
+        id="videoArea"
+        class="video-area hidden"
+      >
+
+        <div id="localVideoPlaceholder">
+          📹
+        </div>
+
+        <video
+          id="localVideo"
+          autoplay
+          muted
+          playsinline
+        ></video>
+
+      </div>
+
+
+      <div class="call-controls">
+
+        <button
+          id="muteBtn"
+          type="button"
+        >
+          🎤
+        </button>
+
+        <button
+          id="cameraBtn"
+          type="button"
         >
           📹
         </button>
 
         <button
-          class="header-button"
-          id="screenShareBtn"
-          title="Compartir pantalla"
+          id="modalScreenBtn"
+          type="button"
         >
           🖥️
         </button>
 
         <button
-          class="header-button"
-          id="membersBtn"
-          title="Miembros"
+          id="hangupBtn"
+          class="hangup"
+          type="button"
         >
-          👥
+          ☎
         </button>
 
       </div>
-
-    </header>
-
-
-    <section
-      id="messages"
-      class="messages"
-    ></section>
-
-
-    <form
-      id="messageForm"
-      class="composer"
-    >
-
-      <button
-        type="button"
-        id="attachBtn"
-        title="Adjuntar"
-      >
-        +
-      </button>
-
-      <input
-        id="messageInput"
-        type="text"
-        maxlength="1000"
-        autocomplete="off"
-        placeholder="Escribe un mensaje en #general..."
-      >
-
-      <button
-        type="button"
-        id="emojiBtn"
-        title="Emoji"
-      >
-        ☺
-      </button>
-
-      <button
-        type="submit"
-        title="Enviar"
-      >
-        ➤
-      </button>
-
-    </form>
-
-  </main>
-
-
-  <!-- MEMBERS -->
-
-  <aside
-    id="membersPanel"
-    class="members"
-  >
-
-    <div class="members-title">
-      MIEMBROS — 4
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar green">
-        A
-      </div>
-
-      <div class="member-info">
-
-        <strong>
-          Alex
-        </strong>
-
-        <span>
-          En línea
-        </span>
-
-      </div>
-
-      <i class="online-dot"></i>
-
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar purple">
-        M
-      </div>
-
-      <div class="member-info">
-
-        <strong>
-          Mario
-        </strong>
-
-        <span>
-          Jugando
-        </span>
-
-      </div>
-
-      <i class="online-dot"></i>
-
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar orange">
-        L
-      </div>
-
-      <div class="member-info">
-
-        <strong>
-          Laura
-        </strong>
-
-        <span>
-          En línea
-        </span>
-
-      </div>
-
-      <i class="online-dot"></i>
-
-    </div>
-
-
-    <div class="member">
-
-      <div
-        id="memberAvatar"
-        class="avatar"
-      >
-        T
-      </div>
-
-      <div class="member-info">
-
-        <strong id="memberName">
-          Tú
-        </strong>
-
-        <span>
-          En línea
-        </span>
-
-      </div>
-
-      <i class="online-dot"></i>
-
-    </div>
-
-  </aside>
-
-</div>
-
-
-<!-- =========================
-     CALL MODAL
-========================= -->
-
-<div
-  id="callModal"
-  class="modal"
->
-
-  <div class="modal-box">
-
-    <button
-      id="closeCall"
-      class="close-modal"
-    >
-      ×
-    </button>
-
-    <h2 id="callTitle">
-      Videollamada
-    </h2>
-
-    <p id="callStatus">
-      Modo de demostración.
-    </p>
-
-
-    <div
-      id="videoArea"
-      class="video-area"
-    >
-
-      <span id="videoPlaceholder">
-        🎥 Cámara / pantalla
-      </span>
-
-      <video
-        id="screenVideo"
-        autoplay
-        muted
-        playsinline
-      ></video>
-
-    </div>
-
-
-    <div class="modal-controls">
-
-      <button
-        id="muteBtn"
-        class="modal-button"
-      >
-        🎤
-      </button>
-
-      <button
-        id="cameraBtn"
-        class="modal-button"
-      >
-        📹
-      </button>
-
-      <button
-        id="modalScreenBtn"
-        class="modal-button"
-      >
-        🖥️
-      </button>
-
-      <button
-        id="hangupBtn"
-        class="modal-button end"
-      >
-        ☎
-      </button>
 
     </div>
 
   </div>
 
-</div>
 
+  <!-- TOAST -->
 
-<div
-  id="toast"
-  class="toast"
-></div>
+  <div
+    id="toast"
+    class="toast"
+  ></div>
 
 
-<script>
+  <!-- JAVASCRIPT -->
 
-/* =====================================================
-   CATRACVOICE
-   JAVASCRIPT
-===================================================== */
-
-const messages = {
-
-  general: [
-    {
-      name: "Alex",
-      initial: "A",
-      color: "green",
-      time: "11:42",
-      text: "¡Bienvenidos a CatracVoice! 👋"
-    },
-    {
-      name: "Mario",
-      initial: "M",
-      color: "purple",
-      time: "11:44",
-      text: "Tiene muy buena pinta 😎"
-    },
-    {
-      name: "Laura",
-      initial: "L",
-      color: "orange",
-      time: "11:47",
-      text: "¿Probamos a organizar aquí los planes del finde?"
-    }
-  ],
-
-  gaming: [
-    {
-      name: "Mario",
-      initial: "M",
-      color: "purple",
-      time: "11:20",
-      text: "¿Jugamos esta tarde? 🎮"
-    },
-    {
-      name: "Alex",
-      initial: "A",
-      color: "green",
-      time: "11:22",
-      text: "Yo me apunto."
-    }
-  ],
-
-  planes: [
-    {
-      name: "Laura",
-      initial: "L",
-      color: "orange",
-      time: "10:58",
-      text: "He creado este canal para organizar los planes."
-    },
-    {
-      name: "Alex",
-      initial: "A",
-      color: "green",
-      time: "11:02",
-      text: "Genial 👍"
-    }
-  ]
-
-};
-
-
-let currentChannel = "general";
-
-let screenStream = null;
-
-let micEnabled = true;
-
-let cameraEnabled = true;
-
-
-/* UTILIDAD */
-
-function $(id) {
-  return document.getElementById(id);
-}
-
-
-function escapeHTML(text) {
-
-  const element =
-    document.createElement("div");
-
-  element.textContent = text;
-
-  return element.innerHTML;
-
-}
-
-
-/* TOAST */
-
-function showToast(text) {
-
-  const toast = $("toast");
-
-  toast.textContent = text;
-
-  toast.classList.add("show");
-
-  clearTimeout(window.toastTimer);
-
-  window.toastTimer =
-    setTimeout(
-      () => toast.classList.remove("show"),
-      2500
-    );
-
-}
-
-
-/* RENDER MENSAJES */
-
-function renderMessages() {
-
-  const container =
-    $("messages");
-
-  const list =
-    messages[currentChannel] || [];
-
-  container.innerHTML = `
-
-    <div class="welcome">
-
-      <div class="welcome-icon">
-        #
-      </div>
-
-      <h2>
-        ¡Bienvenido a #${escapeHTML(currentChannel)}!
-      </h2>
-
-      <p>
-        Este es el comienzo del canal.
-      </p>
-
-    </div>
-
-  `;
-
-
-  list.forEach(message => {
-
-    const article =
-      document.createElement("article");
-
-    article.className =
-      "message";
-
-    article.innerHTML = `
-
-      <div class="avatar ${message.color || ""}">
-        ${escapeHTML(message.initial)}
-      </div>
-
-      <div class="message-info">
-
-        <div class="message-meta">
-
-          <strong>
-            ${escapeHTML(message.name)}
-          </strong>
-
-          <time>
-            ${escapeHTML(message.time)}
-          </time>
-
-        </div>
-
-        <p class="message-text">
-          ${escapeHTML(message.text)}
-        </p>
-
-      </div>
-
-    `;
-
-    container.appendChild(article);
-
-  });
-
-
-  container.scrollTop =
-    container.scrollHeight;
-
-}
-
-
-/* LOGIN */
-
-$("loginForm").addEventListener(
-  "submit",
-  function(event) {
-
-    event.preventDefault();
-
-    const email =
-      $("email").value.trim();
-
-    const password =
-      $("password").value;
-
-    if (!email || !password) {
-
-      showToast(
-        "Introduce el correo y la contraseña."
-      );
-
-      return;
-
-    }
-
-
-    const username =
-      email
-        .split("@")[0]
-        .replace(/[._-]/g, " ")
-        .trim();
-
-
-    $("userName").textContent =
-      username || "Tú";
-
-    $("memberName").textContent =
-      username || "Tú";
-
-
-    $("userAvatar").textContent =
-      (username || "T").charAt(0).toUpperCase();
-
-    $("memberAvatar").textContent =
-      (username || "T").charAt(0).toUpperCase();
-
-
-    $("loginScreen")
-      .classList.add("hidden");
-
-    $("app")
-      .classList.remove("hidden");
-
-
-    renderMessages();
-
-  }
-);
-
-
-/* LOGOUT */
-
-$("logoutBtn").addEventListener(
-  "click",
-  function() {
-
-    $("app")
-      .classList.add("hidden");
-
-    $("loginScreen")
-      .classList.remove("hidden");
-
-  }
-);
-
-
-/* CANALES */
-
-document
-  .querySelectorAll("[data-channel]")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      function() {
-
-        currentChannel =
-          this.dataset.channel;
-
-
-        document
-          .querySelectorAll("[data-channel]")
-          .forEach(item => {
-
-            item.classList.toggle(
-              "active",
-              item === this
-            );
-
-          });
-
-
-        $("channelTitle")
-          .textContent =
-          currentChannel;
-
-
-        $("messageInput")
-          .placeholder =
-          `Escribe un mensaje en #${currentChannel}...`;
-
-
-        renderMessages();
-
-      }
-    );
-
-  });
-
-
-/* MENSAJES */
-
-$("messageForm").addEventListener(
-  "submit",
-  function(event) {
-
-    event.preventDefault();
-
-    const input =
-      $("messageInput");
-
-    const text =
-      input.value.trim();
-
-    if (!text) return;
-
-
-    const time =
-      new Date().toLocaleTimeString(
-        [],
-        {
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      );
-
-
-    messages[currentChannel].push({
-
-      name:
-        $("userName").textContent || "Tú",
-
-      initial:
-        ($("userName").textContent || "T")
-          .charAt(0)
-          .toUpperCase(),
-
-      color: "",
-
-      time,
-
-      text
-
-    });
-
-
-    input.value = "";
-
-    renderMessages();
-
-  }
-);
-
-
-/* EMOJI */
-
-$("emojiBtn").addEventListener(
-  "click",
-  function() {
-
-    $("messageInput").value += " 😊";
-
-    $("messageInput").focus();
-
-  }
-);
-
-
-/* ADJUNTAR */
-
-$("attachBtn").addEventListener(
-  "click",
-  function() {
-
-    showToast(
-      "Los archivos estarán disponibles cuando añadamos almacenamiento."
-    );
-
-  }
-);
-
-
-/* CREAR CANAL */
-
-$("addChannel").addEventListener(
-  "click",
-  function() {
-
-    showToast(
-      "La creación de canales llegará con el backend."
-    );
-
-  }
-);
-
-
-/* MENÚ */
-
-$("groupMenu").addEventListener(
-  "click",
-  function() {
-
-    showToast(
-      "Configuración de CatracVoice."
-    );
-
-  }
-);
-
-
-/* SERVIDORES */
-
-document
-  .querySelectorAll(".server")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      function() {
-
-        if (
-          this.classList.contains(
-            "server-add"
-          )
-        ) {
-
-          showToast(
-            "Crear un nuevo servidor próximamente."
-          );
-
-          return;
-
-        }
-
-
-        document
-          .querySelectorAll(".server")
-          .forEach(server =>
-            server.classList.remove("active")
-          );
-
-
-        this.classList.add("active");
-
-      }
-    );
-
-  });
-
-
-/* MIEMBROS */
-
-$("membersBtn").addEventListener(
-  "click",
-  function() {
-
-    const panel =
-      $("membersPanel");
-
-    if (
-      window.innerWidth <= 1100
-    ) {
-
-      showToast(
-        "Los miembros están ocultos en pantallas pequeñas."
-      );
-
-      return;
-
-    }
-
-
-    panel.style.display =
-      panel.style.display === "none"
-        ? ""
-        : "none";
-
-  }
-);
-
-
-/* =========================
-   LLAMADAS
-========================= */
-
-function openCall(type) {
-
-  $("callModal")
-    .classList.add("open");
-
-
-  if (type === "voice") {
-
-    $("callTitle")
-      .textContent =
-      "Llamada de voz";
-
-    $("callStatus")
-      .textContent =
-      "Modo de demostración local.";
-
-    $("videoArea")
-      .classList.add("hidden");
-
-  }
-
-
-  if (type === "video") {
-
-    $("callTitle")
-      .textContent =
-      "Videollamada";
-
-    $("callStatus")
-      .textContent =
-      "Modo de demostración local.";
-
-    $("videoArea")
-      .classList.remove("hidden");
-
-  }
-
-}
-
-
-$("voiceCallBtn").addEventListener(
-  "click",
-  () => openCall("voice")
-);
-
-
-$("videoCallBtn").addEventListener(
-  "click",
-  () => openCall("video")
-);
-
-
-$("voiceChannel").addEventListener(
-  "click",
-  () => openCall("voice")
-);
-
-
-/* CERRAR LLAMADA */
-
-function closeCall() {
-
-  $("callModal")
-    .classList.remove("open");
-
-  stopScreenShare();
-
-}
-
-
-$("closeCall").addEventListener(
-  "click",
-  closeCall
-);
-
-
-$("hangupBtn").addEventListener(
-  "click",
-  closeCall
-);
-
-
-/* MICRO */
-
-$("muteBtn").addEventListener(
-  "click",
-  function() {
-
-    micEnabled =
-      !micEnabled;
-
-    this.textContent =
-      micEnabled
-        ? "🎤"
-        : "🔇";
-
-    showToast(
-      micEnabled
-        ? "Micrófono activado"
-        : "Micrófono silenciado"
-    );
-
-  }
-);
-
-
-/* CÁMARA */
-
-$("cameraBtn").addEventListener(
-  "click",
-  function() {
-
-    cameraEnabled =
-      !cameraEnabled;
-
-    this.textContent =
-      cameraEnabled
-        ? "📹"
-        : "🚫";
-
-    showToast(
-      cameraEnabled
-        ? "Cámara activada"
-        : "Cámara desactivada"
-    );
-
-  }
-);
-
-
-/* =========================
-   COMPARTIR PANTALLA
-========================= */
-
-async function shareScreen() {
-
-  if (
-    !navigator.mediaDevices ||
-    !navigator.mediaDevices.getDisplayMedia
-  ) {
-
-    showToast(
-      "Tu navegador no permite compartir pantalla."
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    screenStream =
-      await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
-      });
-
-
-    $("callModal")
-      .classList.add("open");
-
-
-    $("callTitle")
-      .textContent =
-      "Compartiendo pantalla";
-
-
-    $("callStatus")
-      .textContent =
-      "Tu pantalla se está mostrando en esta demo.";
-
-
-    $("videoArea")
-      .classList.remove("hidden");
-
-
-    $("videoPlaceholder")
-      .style.display =
-      "none";
-
-
-    const video =
-      $("screenVideo");
-
-
-    video.style.display =
-      "block";
-
-
-    video.srcObject =
-      screenStream;
-
-
-    const track =
-      screenStream.getVideoTracks()[0];
-
-
-    track.addEventListener(
-      "ended",
-      function() {
-
-        stopScreenShare();
-
-        showToast(
-          "Has dejado de compartir la pantalla."
-        );
-
-      }
-    );
-
-
-  } catch (error) {
-
-    showToast(
-      "Has cancelado compartir pantalla."
-    );
-
-  }
-
-}
-
-
-function stopScreenShare() {
-
-  if (screenStream) {
-
-    screenStream
-      .getTracks()
-      .forEach(track =>
-        track.stop()
-      );
-
-    screenStream =
-      null;
-
-  }
-
-
-  const video =
-    $("screenVideo");
-
-
-  video.srcObject =
-    null;
-
-  video.style.display =
-    "none";
-
-
-  $("videoPlaceholder")
-    .style.display =
-    "";
-
-}
-
-
-$("screenShareBtn").addEventListener(
-  "click",
-  shareScreen
-);
-
-
-$("modalScreenBtn").addEventListener(
-  "click",
-  shareScreen
-);
-
-
-/* =========================
-   MÓVIL
-========================= */
-
-$("mobileMenu").addEventListener(
-  "click",
-  function() {
-
-    showToast(
-      "En móvil puedes usar los canales desde el menú."
-    );
-
-  }
-);
-
-
-/* =========================
-   INICIO
-========================= */
-
-renderMessages();
-
-</script>
+  <script src="app.js"></script>
 
 </body>
 </html>
