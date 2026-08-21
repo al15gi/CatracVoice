@@ -1,22 +1,30 @@
-/* =========================================================
-   CATRACVOICE — APP.JS
-   Chat + canales + login + llamadas + pantalla
-   ========================================================= */
-
 "use strict";
 
 /* =========================================================
-   DATOS
+   CATRACVOICE — APP.JS
    ========================================================= */
 
+
+/* =========================================================
+   DATOS INICIALES
+   ========================================================= */
+
+const defaultChannels = [
+  "general",
+  "gaming",
+  "planes"
+];
+
+
 const defaultMessages = {
+
   general: [
     {
       name: "Alex",
       initial: "A",
       color: "green",
       time: "11:42",
-      text: "¡Bienvenidos al nuevo chat! 👋"
+      text: "¡Bienvenidos a CatracVoice! 👋"
     },
     {
       name: "Mario",
@@ -60,6 +68,7 @@ const defaultMessages = {
       text: "He creado este canal para organizar los planes."
     }
   ]
+
 };
 
 
@@ -68,94 +77,138 @@ const defaultMessages = {
    ========================================================= */
 
 let currentChannel = "general";
+
 let currentUser = "Tú";
 
-let messages = loadData(
+let channels = load(
+  "catracvoice_channels",
+  defaultChannels
+);
+
+let messages = load(
   "catracvoice_messages",
   defaultMessages
 );
 
-let channels = loadData(
-  "catracvoice_channels",
-  ["general", "gaming", "planes"]
-);
+let screenStream = null;
 
-let stream = null;
+let microphoneEnabled = true;
+
+let cameraEnabled = true;
 
 
 /* =========================================================
-   UTILIDADES
+   HELPERS
    ========================================================= */
 
-const $ = id => document.getElementById(id);
+function $(id) {
+  return document.getElementById(id);
+}
 
 
-function escapeHTML(text) {
-  const element = document.createElement("div");
-  element.textContent = String(text);
+function escapeHTML(value) {
+
+  const element =
+    document.createElement("div");
+
+  element.textContent =
+    String(value);
+
   return element.innerHTML;
 }
 
 
-function loadData(key, fallback) {
+function load(key, fallback) {
+
   try {
-    const saved = localStorage.getItem(key);
+
+    const saved =
+      localStorage.getItem(key);
 
     if (!saved) {
-      return structuredClone
-        ? structuredClone(fallback)
-        : JSON.parse(JSON.stringify(fallback));
+
+      return JSON.parse(
+        JSON.stringify(fallback)
+      );
+
     }
 
     return JSON.parse(saved);
+
   } catch (error) {
-    console.warn("No se pudo cargar:", key, error);
-    return fallback;
+
+    console.warn(
+      "Error cargando datos:",
+      error
+    );
+
+    return JSON.parse(
+      JSON.stringify(fallback)
+    );
   }
 }
 
 
-function saveData() {
+function save() {
+
   try {
-    localStorage.setItem(
-      "catracvoice_messages",
-      JSON.stringify(messages)
-    );
 
     localStorage.setItem(
       "catracvoice_channels",
       JSON.stringify(channels)
     );
+
+    localStorage.setItem(
+      "catracvoice_messages",
+      JSON.stringify(messages)
+    );
+
   } catch (error) {
-    console.warn("No se pudo guardar:", error);
+
+    console.warn(
+      "No se pudieron guardar los datos:",
+      error
+    );
   }
-}
-
-
-function showToast(text) {
-  const toast = $("toast");
-
-  if (!toast) {
-    alert(text);
-    return;
-  }
-
-  toast.textContent = text;
-  toast.classList.add("show");
-
-  clearTimeout(window.toastTimer);
-
-  window.toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2500);
 }
 
 
 function getTime() {
-  return new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+
+  return new Date()
+    .toLocaleTimeString(
+      [],
+      {
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    );
+}
+
+
+function toast(text) {
+
+  const element =
+    $("toast");
+
+  if (!element) return;
+
+  element.textContent =
+    text;
+
+  element.classList.add("show");
+
+  clearTimeout(
+    window.toastTimeout
+  );
+
+  window.toastTimeout =
+    setTimeout(
+      () => {
+        element.classList.remove("show");
+      },
+      2300
+    );
 }
 
 
@@ -163,256 +216,368 @@ function getTime() {
    LOGIN
    ========================================================= */
 
-const authForm = $("authForm");
+$("authForm").addEventListener(
+  "submit",
+  event => {
 
-if (authForm) {
-  authForm.addEventListener("submit", event => {
     event.preventDefault();
 
-    const emailInput = $("email");
+    const email =
+      $("email").value.trim();
 
-    if (!emailInput) return;
+    const password =
+      $("password").value;
 
-    const email = emailInput.value.trim();
 
     if (!email) {
-      showToast("Escribe tu correo.");
+
+      toast(
+        "Introduce tu correo."
+      );
+
       return;
     }
+
+
+    if (password.length < 8) {
+
+      toast(
+        "La contraseña debe tener al menos 8 caracteres."
+      );
+
+      return;
+    }
+
 
     currentUser =
       email
         .split("@")[0]
         .replace(/[._-]/g, " ")
-        .trim() || "Tú";
+        .trim();
 
-    const authScreen = $("authScreen");
-    const app = $("app");
 
-    if (authScreen) {
-      authScreen.classList.add("hidden");
+    if (!currentUser) {
+      currentUser = "Tú";
     }
 
-    if (app) {
-      app.classList.remove("hidden");
-    }
 
-    const userName = $("userName");
+    $("userName").textContent =
+      currentUser;
 
-    if (userName) {
-      userName.textContent = currentUser;
-    }
+    $("memberCurrentUser").textContent =
+      currentUser;
+
+
+    $("userInitial").textContent =
+      currentUser
+        .charAt(0)
+        .toUpperCase();
+
+
+    $("authScreen")
+      .classList.add("hidden");
+
+
+    $("app")
+      .classList.remove("hidden");
+
 
     renderChannels();
-    renderMessages();
-  });
-}
+
+    selectChannel(
+      currentChannel
+    );
+  }
+);
 
 
 /* =========================================================
    REGISTRO
    ========================================================= */
 
-const registerBtn = $("registerBtn");
+$("registerBtn").addEventListener(
+  "click",
+  () => {
 
-if (registerBtn) {
-  registerBtn.addEventListener("click", () => {
-    showToast(
-      "El registro real necesitará una base de datos."
+    toast(
+      "El registro real se conectará al servidor más adelante."
     );
-  });
-}
+  }
+);
 
 
 /* =========================================================
    LOGOUT
    ========================================================= */
 
-const logoutBtn = $("logoutBtn");
+$("logoutBtn").addEventListener(
+  "click",
+  () => {
 
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", () => {
     stopScreen();
 
-    const app = $("app");
-    const authScreen = $("authScreen");
+    $("app")
+      .classList.add("hidden");
 
-    if (app) {
-      app.classList.add("hidden");
-    }
+    $("authScreen")
+      .classList.remove("hidden");
 
-    if (authScreen) {
-      authScreen.classList.remove("hidden");
-    }
+    $("email").value = "";
 
-    const email = $("email");
-    const password = $("password");
-
-    if (email) email.value = "";
-    if (password) password.value = "";
-  });
-}
+    $("password").value = "";
+  }
+);
 
 
 /* =========================================================
-   RENDER DE CANALES
+   CANALES
    ========================================================= */
 
 function renderChannels() {
+
   const container =
-    document.querySelector(".channels");
+    $("textChannels");
 
   if (!container) return;
 
-  const category =
-    container.querySelector(".category");
-
-  /*
-   * Eliminamos únicamente los canales de texto
-   * creados anteriormente.
-   */
-
-  container
-    .querySelectorAll("[data-channel]")
-    .forEach(element => {
-      element.remove();
-    });
+  container.innerHTML = "";
 
 
-  /*
-   * Creamos los botones según el array channels.
-   */
+  channels.forEach(
+    channelName => {
 
-  channels.forEach(channelName => {
-    const button =
-      document.createElement("button");
+      const button =
+        document.createElement("button");
 
-    button.className = "channel";
+      button.type =
+        "button";
 
-    if (channelName === currentChannel) {
-      button.classList.add("active");
-    }
-
-    button.dataset.channel = channelName;
-
-    button.innerHTML = `
-      <span class="channel-icon">#</span>
-      <span>${escapeHTML(channelName)}</span>
-    `;
-
-    button.addEventListener("click", () => {
-      selectChannel(channelName);
-    });
+      button.className =
+        "channel";
 
 
-    /*
-     * Insertamos antes de la sección de voz.
-     */
+      if (
+        channelName ===
+        currentChannel
+      ) {
 
-    const voiceSection =
-      container.querySelector(".voice");
+        button.classList.add(
+          "active"
+        );
+      }
 
-    if (voiceSection) {
-      container.insertBefore(
-        button,
-        voiceSection
+
+      button.dataset.channel =
+        channelName;
+
+
+      button.innerHTML = `
+        <span class="channel-icon">
+          #
+        </span>
+
+        <span>
+          ${escapeHTML(channelName)}
+        </span>
+      `;
+
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          selectChannel(
+            channelName
+          );
+
+        }
       );
-    } else if (category) {
-      container.appendChild(button);
-    } else {
-      container.appendChild(button);
+
+
+      container.appendChild(
+        button
+      );
     }
-  });
+  );
 }
 
 
-/* =========================================================
-   CAMBIAR DE CANAL
-   ========================================================= */
+function selectChannel(
+  channelName
+) {
 
-function selectChannel(channelName) {
-  if (!channels.includes(channelName)) {
+  if (
+    !channels.includes(
+      channelName
+    )
+  ) {
     return;
   }
 
-  currentChannel = channelName;
 
-  /*
-   * Si el canal todavía no tiene mensajes,
-   * creamos una lista vacía.
-   */
+  currentChannel =
+    channelName;
 
-  if (!messages[currentChannel]) {
-    messages[currentChannel] = [];
+
+  if (
+    !messages[currentChannel]
+  ) {
+
+    messages[currentChannel] =
+      [];
   }
+
 
   document
-    .querySelectorAll("[data-channel]")
-    .forEach(button => {
-      button.classList.toggle(
-        "active",
-        button.dataset.channel === currentChannel
-      );
-    });
+    .querySelectorAll(
+      "#textChannels .channel"
+    )
+    .forEach(
+      button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.channel ===
+          currentChannel
+        );
+      }
+    );
 
 
-  const title = $("channelTitle");
-
-  if (title) {
-    title.textContent = currentChannel;
-  }
+  $("channelTitle")
+    .textContent =
+    currentChannel;
 
 
-  const input = $("messageInput");
-
-  if (input) {
-    input.placeholder =
-      `Escribe un mensaje en #${currentChannel}...`;
-  }
+  $("messageInput")
+    .placeholder =
+    `Escribe un mensaje en #${currentChannel}...`;
 
 
   renderMessages();
 
-  saveData();
+  save();
 }
 
 
 /* =========================================================
-   RENDER MENSAJES
+   CREAR CANAL
+   ========================================================= */
+
+$("addChannel").addEventListener(
+  "click",
+  () => {
+
+    let name =
+      prompt(
+        "Escribe el nombre del nuevo canal:"
+      );
+
+
+    if (name === null) {
+      return;
+    }
+
+
+    name =
+      name
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(
+          /[^a-z0-9áéíóúüñ_-]/gi,
+          ""
+        )
+        .replace(
+          /-+/g,
+          "-"
+        );
+
+
+    if (!name) {
+
+      toast(
+        "Escribe un nombre válido."
+      );
+
+      return;
+    }
+
+
+    if (name.length > 30) {
+
+      toast(
+        "El canal no puede tener más de 30 caracteres."
+      );
+
+      return;
+    }
+
+
+    if (
+      channels.includes(name)
+    ) {
+
+      toast(
+        `#${name} ya existe.`
+      );
+
+      selectChannel(name);
+
+      return;
+    }
+
+
+    channels.push(name);
+
+    messages[name] = [];
+
+
+    save();
+
+
+    currentChannel =
+      name;
+
+
+    renderChannels();
+
+    selectChannel(
+      name
+    );
+
+
+    toast(
+      `#${name} creado correctamente.`
+    );
+  }
+);
+
+
+/* =========================================================
+   MENSAJES
    ========================================================= */
 
 function renderMessages() {
-  const container = $("messages");
+
+  const container =
+    $("messages");
 
   if (!container) return;
 
+
   const list =
-    messages[currentChannel] || [];
-
-
-  if (list.length === 0) {
-    container.innerHTML = `
-      <div class="welcome">
-        <div class="welcome-icon">#</div>
-
-        <h2>
-          ¡Bienvenido a #${escapeHTML(currentChannel)}!
-        </h2>
-
-        <p>
-          Este es el comienzo de este canal.
-          ¡Escribe el primer mensaje!
-        </p>
-      </div>
-    `;
-
-    return;
-  }
+    messages[currentChannel] ||
+    [];
 
 
   container.innerHTML = `
+
     <div class="welcome">
-      <div class="welcome-icon">#</div>
+
+      <div class="welcome-icon">
+        #
+      </div>
 
       <h2>
         ¡Bienvenido a #${escapeHTML(currentChannel)}!
@@ -421,35 +586,62 @@ function renderMessages() {
       <p>
         Este es el comienzo de este canal.
       </p>
+
     </div>
 
-    ${list.map(message => `
-      <article class="message">
+    ${
+      list.length === 0
+        ? `
+          <div class="empty-message">
+            Todavía no hay mensajes.
+          </div>
+        `
+        : ""
+    }
 
-        <div class="avatar ${escapeHTML(message.color || "")}">
-          ${escapeHTML(message.initial)}
-        </div>
+    ${list.map(
+      message => `
 
-        <div class="message-info">
+        <article class="message">
 
-          <div class="message-meta">
-            <strong>
-              ${escapeHTML(message.name)}
-            </strong>
-
-            <time>
-              ${escapeHTML(message.time)}
-            </time>
+          <div class="avatar ${escapeHTML(
+            message.color || ""
+          )}">
+            ${escapeHTML(
+              message.initial
+            )}
           </div>
 
-          <p class="message-text">
-            ${escapeHTML(message.text)}
-          </p>
+          <div class="message-info">
 
-        </div>
+            <div class="message-meta">
 
-      </article>
-    `).join("")}
+              <strong>
+                ${escapeHTML(
+                  message.name
+                )}
+              </strong>
+
+              <time>
+                ${escapeHTML(
+                  message.time
+                )}
+              </time>
+
+            </div>
+
+            <p class="message-text">
+              ${escapeHTML(
+                message.text
+              )}
+            </p>
+
+          </div>
+
+        </article>
+      `
+    ).join("")}
+
   `;
 
 
@@ -462,201 +654,110 @@ function renderMessages() {
    ENVIAR MENSAJE
    ========================================================= */
 
-const messageForm = $("messageForm");
+$("messageForm").addEventListener(
+  "submit",
+  event => {
 
-if (messageForm) {
-  messageForm.addEventListener(
-    "submit",
-    event => {
-      event.preventDefault();
+    event.preventDefault();
 
-      const input =
-        $("messageInput");
+    const input =
+      $("messageInput");
 
-      if (!input) return;
-
-      const text =
-        input.value.trim();
-
-      if (!text) return;
+    const text =
+      input.value.trim();
 
 
-      if (!messages[currentChannel]) {
-        messages[currentChannel] = [];
-      }
-
-
-      messages[currentChannel].push({
-        name: currentUser,
-        initial:
-          currentUser
-            .charAt(0)
-            .toUpperCase() || "T",
-        color: "",
-        time: getTime(),
-        text
-      });
-
-
-      input.value = "";
-
-      saveData();
-
-      renderMessages();
+    if (!text) {
+      return;
     }
-  );
-}
+
+
+    if (
+      !messages[currentChannel]
+    ) {
+
+      messages[currentChannel] =
+        [];
+    }
+
+
+    messages[currentChannel].push({
+
+      name:
+        currentUser,
+
+      initial:
+        currentUser
+          .charAt(0)
+          .toUpperCase() || "T",
+
+      color:
+        "",
+
+      time:
+        getTime(),
+
+      text:
+        text
+
+    });
+
+
+    input.value = "";
+
+    save();
+
+    renderMessages();
+  }
+);
 
 
 /* =========================================================
    EMOJI
    ========================================================= */
 
-const emojiBtn = $("emojiBtn");
+$("emojiBtn").addEventListener(
+  "click",
+  () => {
 
-if (emojiBtn) {
-  emojiBtn.addEventListener("click", () => {
     const input =
       $("messageInput");
 
-    if (!input) return;
-
     input.value += " 😊";
+
     input.focus();
-  });
-}
+  }
+);
 
 
 /* =========================================================
-   ARCHIVOS
+   ADJUNTOS
    ========================================================= */
 
-const attachBtn = $("attachBtn");
+$("attachBtn").addEventListener(
+  "click",
+  () => {
 
-if (attachBtn) {
-  attachBtn.addEventListener("click", () => {
-    showToast(
-      "La subida de archivos necesitará almacenamiento."
+    toast(
+      "La subida de archivos llegará con el almacenamiento."
     );
-  });
-}
+  }
+);
 
 
 /* =========================================================
-   CREAR CANAL
+   MENÚ
    ========================================================= */
 
-const addChannel = $("addChannel");
+$("groupMenu").addEventListener(
+  "click",
+  () => {
 
-if (addChannel) {
-  addChannel.addEventListener("click", () => {
-    createChannel();
-  });
-}
-
-
-function createChannel() {
-
-  /*
-   * Usamos un diálogo sencillo para que funcione
-   * directamente sin modificar index.html.
-   */
-
-  let name =
-    prompt(
-      "Nombre del nuevo canal:"
+    toast(
+      "Configuración de CatracVoice próximamente."
     );
-
-
-  if (name === null) {
-    return;
   }
-
-
-  name =
-    name
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9áéíóúüñ_-]/gi, "")
-      .replace(/-+/g, "-");
-
-
-  if (!name) {
-    showToast(
-      "Escribe un nombre válido."
-    );
-
-    return;
-  }
-
-
-  if (name.length > 30) {
-    showToast(
-      "El nombre no puede superar 30 caracteres."
-    );
-
-    return;
-  }
-
-
-  if (channels.includes(name)) {
-    showToast(
-      `El canal #${name} ya existe.`
-    );
-
-    selectChannel(name);
-
-    return;
-  }
-
-
-  /*
-   * Creamos el canal.
-   */
-
-  channels.push(name);
-
-  messages[name] = [];
-
-
-  /*
-   * Guardamos en el navegador.
-   */
-
-  saveData();
-
-
-  /*
-   * Lo mostramos inmediatamente.
-   */
-
-  currentChannel = name;
-
-  renderChannels();
-
-  selectChannel(name);
-
-
-  showToast(
-    `Canal #${name} creado correctamente.`
-  );
-}
-
-
-/* =========================================================
-   MENÚ DEL GRUPO
-   ========================================================= */
-
-const groupMenu = $("groupMenu");
-
-if (groupMenu) {
-  groupMenu.addEventListener("click", () => {
-    showToast(
-      "Configuración del grupo próximamente."
-    );
-  });
-}
+);
 
 
 /* =========================================================
@@ -665,81 +766,86 @@ if (groupMenu) {
 
 document
   .querySelectorAll(".server")
-  .forEach(button => {
+  .forEach(
+    server => {
 
-    button.addEventListener(
-      "click",
-      () => {
+      server.addEventListener(
+        "click",
+        () => {
 
-        if (
-          button.classList.contains(
-            "add-server"
-          )
-        ) {
+          if (
+            server.id ===
+            "addServer"
+          ) {
 
-          showToast(
-            "Crear un grupo llegará próximamente."
+            toast(
+              "La creación de servidores llegará próximamente."
+            );
+
+            return;
+          }
+
+
+          document
+            .querySelectorAll(".server")
+            .forEach(
+              item => {
+
+                item.classList.remove(
+                  "active"
+                );
+              }
+            );
+
+
+          server.classList.add(
+            "active"
           );
-
-          return;
         }
-
-
-        document
-          .querySelectorAll(".server")
-          .forEach(item => {
-            item.classList.remove("active");
-          });
-
-
-        button.classList.add("active");
-      }
-    );
-  });
+      );
+    }
+  );
 
 
 /* =========================================================
    MIEMBROS
    ========================================================= */
 
-const membersBtn = $("membersBtn");
+$("membersBtn").addEventListener(
+  "click",
+  () => {
 
-if (membersBtn) {
-  membersBtn.addEventListener(
-    "click",
-    () => {
+    const panel =
+      $("membersPanel");
 
-      const panel =
-        $("membersPanel");
+    if (
+      window.innerWidth <=
+      1100
+    ) {
 
-      if (!panel) {
-        showToast(
-          "Lista de miembros no disponible."
-        );
+      toast(
+        "La lista de miembros está oculta en esta pantalla."
+      );
 
-        return;
-      }
+      return;
+    }
 
 
-      if (
-        window.innerWidth <= 1000
-      ) {
-
-        showToast(
-          "La lista de miembros está en el panel lateral."
-        );
-
-        return;
-      }
-
+    if (
+      panel.style.display ===
+      "none"
+    ) {
 
       panel.style.display =
-        panel.style.display === "none"
-          ? ""
-          : "none";
+        "";
+
+    } else {
+
+      panel.style.display =
+        "none";
     }
-  );
-}
+  }
+);
 
 
 /* =========================================================
@@ -748,132 +854,144 @@ if (membersBtn) {
 
 function openCall(type) {
 
-  const modal =
-    $("callModal");
-
-  if (!modal) return;
-
-
-  modal.classList.remove("hidden");
+  $("callModal")
+    .classList.remove(
+      "hidden"
+    );
 
 
-  const title =
-    $("callTitle");
+  if (
+    type === "voice"
+  ) {
 
-  const status =
-    $("callStatus");
+    $("callTitle")
+      .textContent =
+      "Llamada de voz";
 
-  const videoArea =
-    $("videoArea");
+    $("callStatus")
+      .textContent =
+      "Modo de prueba local.";
 
-
-  if (type === "voice") {
-
-    if (title) {
-      title.textContent =
-        "Llamada de voz";
-    }
-
-    if (status) {
-      status.textContent =
-        "Llamada de prueba local.";
-    }
-
-    if (videoArea) {
-      videoArea.classList.add(
+    $("videoArea")
+      .classList.add(
         "hidden"
       );
-    }
-  }
 
+  } else {
 
-  if (type === "video") {
+    $("callTitle")
+      .textContent =
+      "Videollamada";
 
-    if (title) {
-      title.textContent =
-        "Videollamada";
-    }
+    $("callStatus")
+      .textContent =
+      "Modo de prueba local.";
 
-    if (status) {
-      status.textContent =
-        "Videollamada de prueba local.";
-    }
-
-    if (videoArea) {
-      videoArea.classList.remove(
+    $("videoArea")
+      .classList.remove(
         "hidden"
       );
-    }
   }
 }
 
 
-const voiceCallBtn =
-  $("voiceCallBtn");
+$("voiceCallBtn").addEventListener(
+  "click",
+  () => openCall("voice")
+);
 
-if (voiceCallBtn) {
-  voiceCallBtn.addEventListener(
-    "click",
-    () => openCall("voice")
-  );
+
+$("videoCallBtn").addEventListener(
+  "click",
+  () => openCall("video")
+);
+
+
+$("voiceChannel").addEventListener(
+  "click",
+  () => openCall("voice")
+);
+
+
+/* =========================================================
+   CERRAR LLAMADA
+   ========================================================= */
+
+function closeCall() {
+
+  stopScreen();
+
+  $("callModal")
+    .classList.add(
+      "hidden"
+    );
 }
 
 
-const videoCallBtn =
-  $("videoCallBtn");
-
-if (videoCallBtn) {
-  videoCallBtn.addEventListener(
-    "click",
-    () => openCall("video")
-  );
-}
+$("closeCall").addEventListener(
+  "click",
+  closeCall
+);
 
 
-const closeCall =
-  $("closeCall");
-
-if (closeCall) {
-  closeCall.addEventListener(
-    "click",
-    () => {
-
-      stopScreen();
-
-      const modal =
-        $("callModal");
-
-      if (modal) {
-        modal.classList.add(
-          "hidden"
-        );
-      }
-    }
-  );
-}
+$("hangupBtn").addEventListener(
+  "click",
+  closeCall
+);
 
 
-const hangupBtn =
-  $("hangupBtn");
+/* =========================================================
+   MICRÓFONO
+   ========================================================= */
 
-if (hangupBtn) {
-  hangupBtn.addEventListener(
-    "click",
-    () => {
+$("muteBtn").addEventListener(
+  "click",
+  () => {
 
-      stopScreen();
+    microphoneEnabled =
+      !microphoneEnabled;
 
-      const modal =
-        $("callModal");
 
-      if (modal) {
-        modal.classList.add(
-          "hidden"
-        );
-      }
-    }
-  );
-}
+    $("muteBtn").textContent =
+      microphoneEnabled
+        ? "🎤"
+        : "🔇";
+
+
+    toast(
+      microphoneEnabled
+        ? "Micrófono activado."
+        : "Micrófono silenciado."
+    );
+  }
+);
+
+
+/* =========================================================
+   CÁMARA
+   ========================================================= */
+
+$("cameraBtn").addEventListener(
+  "click",
+  () => {
+
+    cameraEnabled =
+      !cameraEnabled;
+
+
+    $("cameraBtn").textContent =
+      cameraEnabled
+        ? "📹"
+        : "🚫";
+
+
+    toast(
+      cameraEnabled
+        ? "Cámara activada."
+        : "Cámara desactivada."
+    );
+  }
+);
 
 
 /* =========================================================
@@ -887,7 +1005,7 @@ async function shareScreen() {
     !navigator.mediaDevices.getDisplayMedia
   ) {
 
-    showToast(
+    toast(
       "Tu navegador no permite compartir pantalla."
     );
 
@@ -897,7 +1015,7 @@ async function shareScreen() {
 
   try {
 
-    stream =
+    screenStream =
       await navigator.mediaDevices
         .getDisplayMedia({
           video: true,
@@ -905,88 +1023,85 @@ async function shareScreen() {
         });
 
 
-    const modal =
-      $("callModal");
-
-    if (modal) {
-      modal.classList.remove(
+    $("callModal")
+      .classList.remove(
         "hidden"
       );
-    }
 
 
-    const title =
-      $("callTitle");
-
-    if (title) {
-      title.textContent =
-        "Compartiendo pantalla";
-    }
+    $("callTitle")
+      .textContent =
+      "Compartiendo pantalla";
 
 
-    const status =
-      $("callStatus");
+    $("callStatus")
+      .textContent =
+      "Vista previa de tu pantalla";
 
-    if (status) {
-      status.textContent =
-        "Vista previa de tu pantalla.";
-    }
+
+    $("videoArea")
+      .classList.remove(
+        "hidden"
+      );
+
+
+    $("videoPlaceholder")
+      .classList.add(
+        "hidden"
+      );
 
 
     const video =
       $("screenVideo");
 
-    const videoArea =
-      $("videoArea");
+
+    video.style.display =
+      "block";
 
 
-    if (video) {
-      video.srcObject = stream;
-      video.style.display =
-        "block";
-      video.play().catch(() => {});
-    }
+    video.srcObject =
+      screenStream;
 
 
-    if (videoArea) {
-      videoArea.classList.remove(
-        "hidden"
-      );
-    }
-
-
-    showToast(
-      "Pantalla compartida."
+    video.play().catch(
+      () => {}
     );
 
 
-    const videoTrack =
-      stream.getVideoTracks()[0];
+    const track =
+      screenStream
+        .getVideoTracks()[0];
 
 
-    if (videoTrack) {
-      videoTrack.addEventListener(
+    if (track) {
+
+      track.addEventListener(
         "ended",
         () => {
 
           stopScreen();
 
-          showToast(
+          toast(
             "Has dejado de compartir la pantalla."
           );
         }
       );
     }
 
+
+    toast(
+      "Pantalla compartida."
+    );
+
+
   } catch (error) {
 
     console.log(
-      "Compartir pantalla:",
       error
     );
 
-    showToast(
-      "Has cancelado compartir la pantalla."
+    toast(
+      "Has cancelado compartir pantalla."
     );
   }
 }
@@ -994,15 +1109,16 @@ async function shareScreen() {
 
 function stopScreen() {
 
-  if (stream) {
+  if (screenStream) {
 
-    stream
+    screenStream
       .getTracks()
-      .forEach(track => {
-        track.stop();
-      });
+      .forEach(
+        track => track.stop()
+      );
 
-    stream = null;
+    screenStream =
+      null;
   }
 
 
@@ -1010,94 +1126,126 @@ function stopScreen() {
     $("screenVideo");
 
   if (video) {
-    video.srcObject = null;
+
+    video.srcObject =
+      null;
+
     video.style.display =
       "none";
+  }
+
+
+  const placeholder =
+    $("videoPlaceholder");
+
+  if (placeholder) {
+
+    placeholder.classList.remove(
+      "hidden"
+    );
   }
 }
 
 
-const screenShareBtn =
-  $("screenShareBtn");
-
-if (screenShareBtn) {
-  screenShareBtn.addEventListener(
-    "click",
-    shareScreen
-  );
-}
+$("screenShareBtn").addEventListener(
+  "click",
+  shareScreen
+);
 
 
-const modalScreenBtn =
-  $("modalScreenBtn");
-
-if (modalScreenBtn) {
-  modalScreenBtn.addEventListener(
-    "click",
-    shareScreen
-  );
-}
+$("modalScreenBtn").addEventListener(
+  "click",
+  shareScreen
+);
 
 
 /* =========================================================
-   SALA DE VOZ
+   MÓVIL
    ========================================================= */
 
-const voiceChannel =
-  $("voiceChannel");
+$("mobileMenu").addEventListener(
+  "click",
+  () => {
 
-if (voiceChannel) {
-  voiceChannel.addEventListener(
-    "click",
-    () => openCall("voice")
-  );
-}
+    const sidebar =
+      document.querySelector(
+        ".sidebar"
+      );
 
 
-/* =========================================================
-   MENÚ MÓVIL
-   ========================================================= */
-
-const mobileMenu =
-  $("mobileMenu");
-
-if (mobileMenu) {
-
-  mobileMenu.addEventListener(
-    "click",
-    () => {
-
-      const sidebar =
-        document.querySelector(
-          ".sidebar"
-        );
-
-      if (sidebar) {
-        sidebar.classList.toggle(
-          "open"
-        );
-      } else {
-        showToast(
-          "Menú móvil abierto."
-        );
-      }
+    if (!sidebar) {
+      return;
     }
-  );
-}
+
+
+    if (
+      sidebar.style.display ===
+      "flex"
+    ) {
+
+      sidebar.style.display =
+        "";
+
+    } else {
+
+      sidebar.style.display =
+        "flex";
+
+      sidebar.style.position =
+        "fixed";
+
+      sidebar.style.left =
+        "72px";
+
+      sidebar.style.top =
+        "0";
+
+      sidebar.style.bottom =
+        "0";
+
+      sidebar.style.width =
+        "240px";
+
+      sidebar.style.zIndex =
+        "200";
+    }
+  }
+);
+
+
+/* =========================================================
+   AÑADIR SERVIDOR
+   ========================================================= */
+
+$("addServer").addEventListener(
+  "click",
+  () => {
+
+    toast(
+      "La creación de servidores se añadirá con el backend."
+    );
+  }
+);
 
 
 /* =========================================================
    INICIO
    ========================================================= */
 
-renderChannels();
+if (
+  !messages[currentChannel]
+) {
 
-if (messages[currentChannel] === undefined) {
-  messages[currentChannel] = [];
+  messages[currentChannel] =
+    [];
 }
+
+
+renderChannels();
 
 renderMessages();
 
+
 console.log(
-  "CatracVoice cargado correctamente."
+  "CatracVoice iniciado correctamente."
 );
