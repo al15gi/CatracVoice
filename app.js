@@ -1,294 +1,228 @@
-"use strict";
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
 
 /* =========================================================
-   CATRACVOICE — APP.JS
+   FIREBASE
    ========================================================= */
 
-
-/* =========================================================
-   DATOS INICIALES
-   ========================================================= */
-
-const defaultChannels = [
-  "general",
-  "gaming",
-  "planes"
-];
-
-
-const defaultMessages = {
-
-  general: [
-    {
-      name: "Alex",
-      initial: "A",
-      color: "green",
-      time: "11:42",
-      text: "¡Bienvenidos a CatracVoice! 👋"
-    },
-    {
-      name: "Mario",
-      initial: "M",
-      color: "purple",
-      time: "11:44",
-      text: "Tiene muy buena pinta 😎"
-    },
-    {
-      name: "Laura",
-      initial: "L",
-      color: "orange",
-      time: "11:47",
-      text: "¿Probamos a organizar aquí los planes del finde?"
-    }
-  ],
-
-  gaming: [
-    {
-      name: "Mario",
-      initial: "M",
-      color: "purple",
-      time: "11:20",
-      text: "¿Jugamos esta tarde? 🎮"
-    },
-    {
-      name: "Alex",
-      initial: "A",
-      color: "green",
-      time: "11:22",
-      text: "Yo me apunto."
-    }
-  ],
-
-  planes: [
-    {
-      name: "Laura",
-      initial: "L",
-      color: "orange",
-      time: "10:58",
-      text: "He creado este canal para organizar los planes."
-    }
-  ]
-
+const firebaseConfig = {
+  apiKey: "AIzaSyAmtIokqk2p4d_PpGi-6psdvHtwBGJBh1o",
+  authDomain: "catracvoice.firebaseapp.com",
+  projectId: "catracvoice",
+  storageBucket: "catracvoice.firebasestorage.app",
+  messagingSenderId: "154787555675",
+  appId: "1:154787555675:web:efd310773446d4f45d927e",
+  measurementId: "G-0QTJETS9G5"
 };
+
+const firebaseApp = initializeApp(firebaseConfig);
+
+const auth = getAuth(firebaseApp);
+
+const db = getFirestore(firebaseApp);
 
 
 /* =========================================================
    ESTADO
    ========================================================= */
 
+let currentUser = null;
+
 let currentChannel = "general";
 
-let currentUser = "Tú";
+let unsubscribeMessages = null;
 
-let channels = load(
-  "catracvoice_channels",
-  defaultChannels
-);
+let unsubscribeChannels = null;
 
-let messages = load(
-  "catracvoice_messages",
-  defaultMessages
-);
+let unsubscribeUsers = null;
 
-let screenStream = null;
-
-let microphoneEnabled = true;
-
-let cameraEnabled = true;
+const serverId = "catracvoice";
 
 
 /* =========================================================
-   HELPERS
+   UTILIDADES
    ========================================================= */
 
-function $(id) {
-  return document.getElementById(id);
-}
+const $ = id => document.getElementById(id);
 
 
 function escapeHTML(value) {
 
-  const element =
-    document.createElement("div");
+  const div = document.createElement("div");
 
-  element.textContent =
-    String(value);
+  div.textContent = value ?? "";
 
-  return element.innerHTML;
+  return div.innerHTML;
 }
 
 
-function load(key, fallback) {
+function showToast(text) {
 
-  try {
+  const toast = $("toast");
 
-    const saved =
-      localStorage.getItem(key);
+  if (!toast) return;
 
-    if (!saved) {
+  toast.textContent = text;
 
-      return JSON.parse(
-        JSON.stringify(fallback)
-      );
+  toast.classList.add("show");
 
-    }
+  clearTimeout(window.toastTimer);
 
-    return JSON.parse(saved);
+  window.toastTimer = setTimeout(() => {
 
-  } catch (error) {
+    toast.classList.remove("show");
 
-    console.warn(
-      "Error cargando datos:",
-      error
-    );
+  }, 2500);
+}
 
-    return JSON.parse(
-      JSON.stringify(fallback)
-    );
+
+function getUsernameFromEmail(email) {
+
+  return email
+    .split("@")[0]
+    .replace(/[._-]/g, " ")
+    .trim() || "Usuario";
+}
+
+
+function getInitial(name) {
+
+  return (name || "U")
+    .charAt(0)
+    .toUpperCase();
+}
+
+
+function getColor(name) {
+
+  const colors = [
+    "green",
+    "purple",
+    "orange",
+    ""
+  ];
+
+  let total = 0;
+
+  for (const char of name) {
+    total += char.charCodeAt(0);
   }
-}
 
-
-function save() {
-
-  try {
-
-    localStorage.setItem(
-      "catracvoice_channels",
-      JSON.stringify(channels)
-    );
-
-    localStorage.setItem(
-      "catracvoice_messages",
-      JSON.stringify(messages)
-    );
-
-  } catch (error) {
-
-    console.warn(
-      "No se pudieron guardar los datos:",
-      error
-    );
-  }
-}
-
-
-function getTime() {
-
-  return new Date()
-    .toLocaleTimeString(
-      [],
-      {
-        hour: "2-digit",
-        minute: "2-digit"
-      }
-    );
-}
-
-
-function toast(text) {
-
-  const element =
-    $("toast");
-
-  if (!element) return;
-
-  element.textContent =
-    text;
-
-  element.classList.add("show");
-
-  clearTimeout(
-    window.toastTimeout
-  );
-
-  window.toastTimeout =
-    setTimeout(
-      () => {
-        element.classList.remove("show");
-      },
-      2300
-    );
+  return colors[total % colors.length];
 }
 
 
 /* =========================================================
-   LOGIN
+   AUTENTICACIÓN
    ========================================================= */
 
-$("authForm").addEventListener(
-  "submit",
-  event => {
+$("authForm").addEventListener("submit", async event => {
 
-    event.preventDefault();
+  event.preventDefault();
 
-    const email =
-      $("email").value.trim();
+  const email = $("email").value.trim();
 
-    const password =
-      $("password").value;
+  const password = $("password").value;
 
+  if (!email || !password) {
 
-    if (!email) {
+    showToast("Escribe tu correo y contraseña.");
 
-      toast(
-        "Introduce tu correo."
-      );
-
-      return;
-    }
-
-
-    if (password.length < 8) {
-
-      toast(
-        "La contraseña debe tener al menos 8 caracteres."
-      );
-
-      return;
-    }
-
-
-    currentUser =
-      email
-        .split("@")[0]
-        .replace(/[._-]/g, " ")
-        .trim();
-
-
-    if (!currentUser) {
-      currentUser = "Tú";
-    }
-
-
-    $("userName").textContent =
-      currentUser;
-
-    $("memberCurrentUser").textContent =
-      currentUser;
-
-
-    $("userInitial").textContent =
-      currentUser
-        .charAt(0)
-        .toUpperCase();
-
-
-    $("authScreen")
-      .classList.add("hidden");
-
-
-    $("app")
-      .classList.remove("hidden");
-
-
-    renderChannels();
-
-    selectChannel(
-      currentChannel
-    );
+    return;
   }
-);
+
+  const button =
+    event.submitter ||
+    document.querySelector(".login-button");
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent = "Entrando...";
+  }
+
+  try {
+
+    await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    if (
+      error.code ===
+      "auth/invalid-credential"
+    ) {
+
+      showToast(
+        "Correo o contraseña incorrectos."
+      );
+
+    } else if (
+      error.code ===
+      "auth/invalid-email"
+    ) {
+
+      showToast(
+        "El correo no es válido."
+      );
+
+    } else if (
+      error.code ===
+      "auth/too-many-requests"
+    ) {
+
+      showToast(
+        "Demasiados intentos. Espera un momento."
+      );
+
+    } else {
+
+      showToast(
+        "No se pudo iniciar sesión."
+      );
+    }
+
+  } finally {
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.textContent = "Entrar";
+    }
+  }
+
+});
 
 
 /* =========================================================
@@ -297,34 +231,230 @@ $("authForm").addEventListener(
 
 $("registerBtn").addEventListener(
   "click",
-  () => {
+  async () => {
 
-    toast(
-      "El registro real se conectará al servidor más adelante."
-    );
+    const email =
+      $("email").value.trim();
+
+    const password =
+      $("password").value;
+
+    if (!email) {
+
+      showToast(
+        "Escribe primero tu correo."
+      );
+
+      $("email").focus();
+
+      return;
+    }
+
+    if (password.length < 8) {
+
+      showToast(
+        "La contraseña debe tener al menos 8 caracteres."
+      );
+
+      $("password").focus();
+
+      return;
+    }
+
+    try {
+
+      const credential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+      const user =
+        credential.user;
+
+      const username =
+        getUsernameFromEmail(email);
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name: username,
+          email: email,
+          createdAt: serverTimestamp()
+        },
+        {
+          merge: true
+        }
+      );
+
+      showToast(
+        "¡Cuenta creada correctamente!"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      if (
+        error.code ===
+        "auth/email-already-in-use"
+      ) {
+
+        showToast(
+          "Ese correo ya tiene una cuenta."
+        );
+
+      } else if (
+        error.code ===
+        "auth/invalid-email"
+      ) {
+
+        showToast(
+          "El correo no es válido."
+        );
+
+      } else if (
+        error.code ===
+        "auth/weak-password"
+      ) {
+
+        showToast(
+          "La contraseña es demasiado débil."
+        );
+
+      } else {
+
+        showToast(
+          "No se pudo crear la cuenta."
+        );
+      }
+    }
   }
 );
 
 
 /* =========================================================
-   LOGOUT
+   CERRAR SESIÓN
    ========================================================= */
 
 $("logoutBtn").addEventListener(
   "click",
-  () => {
+  async () => {
 
-    stopScreen();
+    try {
 
-    $("app")
-      .classList.add("hidden");
+      await signOut(auth);
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "No se pudo cerrar sesión."
+      );
+    }
+  }
+);
+
+
+/* =========================================================
+   ESTADO DE AUTENTICACIÓN
+   ========================================================= */
+
+onAuthStateChanged(
+  auth,
+  async user => {
+
+    currentUser = user;
+
+    if (!user) {
+
+      $("authScreen")
+        .classList.remove("hidden");
+
+      $("app")
+        .classList.add("hidden");
+
+      if (unsubscribeMessages) {
+
+        unsubscribeMessages();
+
+        unsubscribeMessages = null;
+      }
+
+      if (unsubscribeChannels) {
+
+        unsubscribeChannels();
+
+        unsubscribeChannels = null;
+      }
+
+      if (unsubscribeUsers) {
+
+        unsubscribeUsers();
+
+        unsubscribeUsers = null;
+      }
+
+      return;
+    }
+
 
     $("authScreen")
+      .classList.add("hidden");
+
+    $("app")
       .classList.remove("hidden");
 
-    $("email").value = "";
 
-    $("password").value = "";
+    let username =
+      getUsernameFromEmail(
+        user.email || ""
+      );
+
+
+    try {
+
+      const userRef =
+        doc(db, "users", user.uid);
+
+      await setDoc(
+        userRef,
+        {
+          name: username,
+          email: user.email,
+          createdAt: serverTimestamp()
+        },
+        {
+          merge: true
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Error guardando usuario:",
+        error
+      );
+    }
+
+
+    $("userName").textContent =
+      username;
+
+    $("memberCurrentUser").textContent =
+      username;
+
+    $("userInitial").textContent =
+      getInitial(username);
+
+
+    await loadChannels();
+
+    listenToUsers();
+
+    listenToMessages();
   }
 );
 
@@ -333,130 +463,225 @@ $("logoutBtn").addEventListener(
    CANALES
    ========================================================= */
 
-function renderChannels() {
+async function loadChannels() {
 
   const container =
     $("textChannels");
 
-  if (!container) return;
-
   container.innerHTML = "";
 
+  try {
 
-  channels.forEach(
-    channelName => {
-
-      const button =
-        document.createElement("button");
-
-      button.type =
-        "button";
-
-      button.className =
-        "channel";
-
-
-      if (
-        channelName ===
-        currentChannel
-      ) {
-
-        button.classList.add(
-          "active"
-        );
-      }
+    const channelsQuery =
+      query(
+        collection(db, "channels"),
+        where(
+          "serverId",
+          "==",
+          serverId
+        )
+      );
 
 
-      button.dataset.channel =
-        channelName;
+    if (unsubscribeChannels) {
+
+      unsubscribeChannels();
+
+    }
 
 
-      button.innerHTML = `
-        <span class="channel-icon">
-          #
-        </span>
+    unsubscribeChannels =
+      onSnapshot(
+        channelsQuery,
+        snapshot => {
 
-        <span>
-          ${escapeHTML(channelName)}
-        </span>
-      `;
+          container.innerHTML = "";
+
+          const channels =
+            snapshot.docs
+              .map(document => ({
+                id: document.id,
+                ...document.data()
+              }))
+              .sort(
+                (a, b) =>
+                  (a.name || "")
+                    .localeCompare(
+                      b.name || ""
+                    )
+              );
 
 
-      button.addEventListener(
-        "click",
-        () => {
+          if (!channels.length) {
 
-          selectChannel(
-            channelName
+            createDefaultChannel();
+
+            return;
+          }
+
+
+          channels.forEach(channel => {
+
+            const button =
+              document.createElement(
+                "button"
+              );
+
+            button.type = "button";
+
+            button.className =
+              "channel";
+
+
+            if (
+              channel.id ===
+              currentChannel
+            ) {
+
+              button.classList.add(
+                "active"
+              );
+            }
+
+
+            button.dataset.channel =
+              channel.id;
+
+
+            button.innerHTML = `
+              <span class="channel-icon">#</span>
+              <span>${escapeHTML(
+                channel.name ||
+                channel.id
+              )}</span>
+            `;
+
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                selectChannel(
+                  channel.id,
+                  channel.name ||
+                  channel.id
+                );
+
+              }
+            );
+
+
+            container.appendChild(
+              button
+            );
+
+          });
+
+
+          const currentExists =
+            channels.some(
+              channel =>
+                channel.id ===
+                currentChannel
+            );
+
+
+          if (!currentExists) {
+
+            const first =
+              channels[0];
+
+            currentChannel =
+              first.id;
+
+            $("channelTitle")
+              .textContent =
+              first.name ||
+              first.id;
+
+          }
+
+        },
+        error => {
+
+          console.error(
+            "Error canales:",
+            error
           );
 
+          showToast(
+            "No se pudieron cargar los canales."
+          );
         }
       );
 
+  } catch (error) {
 
-      container.appendChild(
-        button
-      );
-    }
-  );
+    console.error(error);
+
+    showToast(
+      "Error conectando con los canales."
+    );
+  }
 }
 
 
-function selectChannel(
-  channelName
-) {
+async function createDefaultChannel() {
 
-  if (
-    !channels.includes(
-      channelName
-    )
-  ) {
-    return;
-  }
+  try {
 
-
-  currentChannel =
-    channelName;
-
-
-  if (
-    !messages[currentChannel]
-  ) {
-
-    messages[currentChannel] =
-      [];
-  }
-
-
-  document
-    .querySelectorAll(
-      "#textChannels .channel"
-    )
-    .forEach(
-      button => {
-
-        button.classList.toggle(
-          "active",
-          button.dataset.channel ===
-          currentChannel
-        );
+    await setDoc(
+      doc(
+        db,
+        "channels",
+        "general"
+      ),
+      {
+        name: "general",
+        serverId: serverId,
+        type: "text",
+        createdAt: serverTimestamp()
+      },
+      {
+        merge: true
       }
     );
 
+  } catch (error) {
+
+    console.error(error);
+  }
+}
+
+
+function selectChannel(id, name) {
+
+  currentChannel = id;
 
   $("channelTitle")
-    .textContent =
-    currentChannel;
+    .textContent = name;
 
 
   $("messageInput")
     .placeholder =
-    `Escribe un mensaje en #${currentChannel}...`;
+    `Escribe un mensaje en #${name}...`;
 
 
-  renderMessages();
+  document
+    .querySelectorAll(
+      "[data-channel]"
+    )
+    .forEach(button => {
 
-  save();
+      button.classList.toggle(
+        "active",
+        button.dataset.channel === id
+      );
+
+    });
+
+
+  listenToMessages();
 }
 
 
@@ -466,183 +691,272 @@ function selectChannel(
 
 $("addChannel").addEventListener(
   "click",
-  () => {
+  async () => {
 
-    let name =
+    if (!currentUser) return;
+
+
+    const name =
       prompt(
-        "Escribe el nombre del nuevo canal:"
+        "Nombre del nuevo canal:"
       );
 
 
-    if (name === null) {
-      return;
-    }
+    if (!name) return;
 
 
-    name =
+    const cleanName =
       name
         .trim()
         .toLowerCase()
         .replace(/\s+/g, "-")
-        .replace(
-          /[^a-z0-9áéíóúüñ_-]/gi,
-          ""
-        )
-        .replace(
-          /-+/g,
-          "-"
+        .replace(/[^a-z0-9áéíóúüñ_-]/gi, "");
+
+
+    if (!cleanName) {
+
+      showToast(
+        "Nombre de canal no válido."
+      );
+
+      return;
+    }
+
+
+    try {
+
+      const channelRef =
+        doc(
+          collection(
+            db,
+            "channels"
+          )
         );
 
 
-    if (!name) {
-
-      toast(
-        "Escribe un nombre válido."
+      await setDoc(
+        channelRef,
+        {
+          name: cleanName,
+          serverId: serverId,
+          type: "text",
+          createdBy: currentUser.uid,
+          createdAt: serverTimestamp()
+        }
       );
 
-      return;
-    }
 
-
-    if (name.length > 30) {
-
-      toast(
-        "El canal no puede tener más de 30 caracteres."
+      selectChannel(
+        channelRef.id,
+        cleanName
       );
 
-      return;
-    }
 
-
-    if (
-      channels.includes(name)
-    ) {
-
-      toast(
-        `#${name} ya existe.`
+      showToast(
+        `Canal #${cleanName} creado.`
       );
 
-      selectChannel(name);
+    } catch (error) {
 
-      return;
+      console.error(error);
+
+      showToast(
+        "No se pudo crear el canal."
+      );
     }
-
-
-    channels.push(name);
-
-    messages[name] = [];
-
-
-    save();
-
-
-    currentChannel =
-      name;
-
-
-    renderChannels();
-
-    selectChannel(
-      name
-    );
-
-
-    toast(
-      `#${name} creado correctamente.`
-    );
   }
 );
 
 
 /* =========================================================
-   MENSAJES
+   MENSAJES EN TIEMPO REAL
    ========================================================= */
 
-function renderMessages() {
+function listenToMessages() {
+
+  if (unsubscribeMessages) {
+
+    unsubscribeMessages();
+
+    unsubscribeMessages = null;
+  }
+
 
   const container =
     $("messages");
 
-  if (!container) return;
+  container.innerHTML =
+    `
+      <div class="welcome">
+        <div class="welcome-icon">#</div>
+        <h2>
+          Bienvenido a #${escapeHTML(
+            currentChannel
+          )}
+        </h2>
+        <p>
+          Este es el comienzo del canal.
+        </p>
+      </div>
+    `;
 
 
-  const list =
-    messages[currentChannel] ||
-    [];
+  const messagesQuery =
+    query(
+      collection(db, "messages"),
+      where(
+        "channelId",
+        "==",
+        currentChannel
+      )
+    );
+
+
+  unsubscribeMessages =
+    onSnapshot(
+      messagesQuery,
+      snapshot => {
+
+        const messages =
+          snapshot.docs
+            .map(document => ({
+              id: document.id,
+              ...document.data()
+            }))
+            .sort(
+              (a, b) => {
+
+                const aTime =
+                  a.createdAt?.toMillis?.() ||
+                  0;
+
+                const bTime =
+                  b.createdAt?.toMillis?.() ||
+                  0;
+
+                return aTime - bTime;
+              }
+            );
+
+
+        renderMessages(
+          messages
+        );
+
+      },
+      error => {
+
+        console.error(
+          "Error mensajes:",
+          error
+        );
+
+        showToast(
+          "No se pudieron cargar los mensajes."
+        );
+      }
+    );
+}
+
+
+function renderMessages(list) {
+
+  const container =
+    $("messages");
 
 
   container.innerHTML = `
-
     <div class="welcome">
-
-      <div class="welcome-icon">
-        #
-      </div>
+      <div class="welcome-icon">#</div>
 
       <h2>
-        ¡Bienvenido a #${escapeHTML(currentChannel)}!
+        Bienvenido a #${escapeHTML(
+          currentChannel
+        )}
       </h2>
 
       <p>
-        Este es el comienzo de este canal.
+        Este es el comienzo del canal.
       </p>
-
     </div>
+  `;
 
-    ${
-      list.length === 0
-        ? `
-          <div class="empty-message">
-            Todavía no hay mensajes.
-          </div>
-        `
-        : ""
+
+  list.forEach(message => {
+
+    const article =
+      document.createElement(
+        "article"
+      );
+
+
+    article.className =
+      "message";
+
+
+    const username =
+      message.userName ||
+      "Usuario";
+
+
+    let time = "";
+
+    if (
+      message.createdAt &&
+      message.createdAt.toDate
+    ) {
+
+      time =
+        message.createdAt
+          .toDate()
+          .toLocaleTimeString(
+            "es-ES",
+            {
+              hour: "2-digit",
+              minute: "2-digit"
+            }
+          );
     }
 
-    ${list.map(
-      message => `
 
-        <article class="message">
+    article.innerHTML = `
+      <div class="avatar ${escapeHTML(
+        getColor(username)
+      )}">
+        ${escapeHTML(
+          getInitial(username)
+        )}
+      </div>
 
-          <div class="avatar ${escapeHTML(
-            message.color || ""
-          )}">
-            ${escapeHTML(
-              message.initial
-            )}
-          </div>
+      <div class="message-info">
 
-          <div class="message-info">
+        <div class="message-meta">
 
-            <div class="message-meta">
+          <strong>
+            ${escapeHTML(username)}
+          </strong>
 
-              <strong>
-                ${escapeHTML(
-                  message.name
-                )}
-              </strong>
+          <time>
+            ${escapeHTML(time)}
+          </time>
 
-              <time>
-                ${escapeHTML(
-                  message.time
-                )}
-              </time>
+        </div>
 
-            </div>
+        <p class="message-text">
+          ${escapeHTML(
+            message.text || ""
+          )}
+        </p>
 
-            <p class="message-text">
-              ${escapeHTML(
-                message.text
-              )}
-            </p>
+      </div>
+    `;
 
-          </div>
 
-        </article>
-      `
-    ).join("")}
+    container.appendChild(
+      article
+    );
 
-  `;
+  });
 
 
   container.scrollTop =
@@ -656,58 +970,74 @@ function renderMessages() {
 
 $("messageForm").addEventListener(
   "submit",
-  event => {
+  async event => {
 
     event.preventDefault();
 
+
+    if (!currentUser) {
+
+      showToast(
+        "Inicia sesión primero."
+      );
+
+      return;
+    }
+
+
     const input =
       $("messageInput");
+
 
     const text =
       input.value.trim();
 
 
-    if (!text) {
-      return;
+    if (!text) return;
+
+
+    input.disabled = true;
+
+
+    try {
+
+      const username =
+        $("userName")
+          .textContent ||
+        "Usuario";
+
+
+      await addDoc(
+        collection(
+          db,
+          "messages"
+        ),
+        {
+          text: text,
+          userId: currentUser.uid,
+          userName: username,
+          channelId: currentChannel,
+          createdAt: serverTimestamp()
+        }
+      );
+
+
+      input.value = "";
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "No se pudo enviar el mensaje."
+      );
+
+    } finally {
+
+      input.disabled = false;
+
+      input.focus();
     }
-
-
-    if (
-      !messages[currentChannel]
-    ) {
-
-      messages[currentChannel] =
-        [];
-    }
-
-
-    messages[currentChannel].push({
-
-      name:
-        currentUser,
-
-      initial:
-        currentUser
-          .charAt(0)
-          .toUpperCase() || "T",
-
-      color:
-        "",
-
-      time:
-        getTime(),
-
-      text:
-        text
-
-    });
-
-
-    input.value = "";
-
-    save();
-
-    renderMessages();
   }
 );
 
@@ -720,91 +1050,85 @@ $("emojiBtn").addEventListener(
   "click",
   () => {
 
-    const input =
-      $("messageInput");
+    $("messageInput").value +=
+      " 😊";
 
-    input.value += " 😊";
-
-    input.focus();
+    $("messageInput").focus();
   }
 );
 
 
 /* =========================================================
-   ADJUNTOS
+   ARCHIVOS
    ========================================================= */
 
 $("attachBtn").addEventListener(
   "click",
   () => {
 
-    toast(
-      "La subida de archivos llegará con el almacenamiento."
+    showToast(
+      "Los archivos los añadiremos con Firebase Storage."
     );
   }
 );
 
 
 /* =========================================================
-   MENÚ
+   MIEMBROS EN TIEMPO REAL
    ========================================================= */
 
-$("groupMenu").addEventListener(
-  "click",
-  () => {
+function listenToUsers() {
 
-    toast(
-      "Configuración de CatracVoice próximamente."
-    );
+  if (unsubscribeUsers) {
+
+    unsubscribeUsers();
+
   }
-);
 
 
-/* =========================================================
-   SERVIDORES
-   ========================================================= */
-
-document
-  .querySelectorAll(".server")
-  .forEach(
-    server => {
-
-      server.addEventListener(
-        "click",
-        () => {
-
-          if (
-            server.id ===
-            "addServer"
-          ) {
-
-            toast(
-              "La creación de servidores llegará próximamente."
-            );
-
-            return;
-          }
+  const usersQuery =
+    collection(
+      db,
+      "users"
+    );
 
 
-          document
-            .querySelectorAll(".server")
-            .forEach(
-              item => {
+  unsubscribeUsers =
+    onSnapshot(
+      usersQuery,
+      snapshot => {
 
-                item.classList.remove(
-                  "active"
-                );
-              }
-            );
-
-
-          server.classList.add(
-            "active"
+        const users =
+          snapshot.docs.map(
+            document => ({
+              id: document.id,
+              ...document.data()
+            })
           );
+
+
+        const title =
+          document.querySelector(
+            ".members-title"
+          );
+
+
+        if (title) {
+
+          title.textContent =
+            `MIEMBROS — ${users.length}`;
         }
-      );
-    }
-  );
+
+      },
+      error => {
+
+        console.error(
+          "Error usuarios:",
+          error
+        );
+      }
+    );
+}
 
 
 /* =========================================================
@@ -818,13 +1142,13 @@ $("membersBtn").addEventListener(
     const panel =
       $("membersPanel");
 
+
     if (
-      window.innerWidth <=
-      1100
+      window.innerWidth <= 1000
     ) {
 
-      toast(
-        "La lista de miembros está oculta en esta pantalla."
+      showToast(
+        "Abre CatracVoice en una pantalla más grande para ver los miembros."
       );
 
       return;
@@ -836,8 +1160,7 @@ $("membersBtn").addEventListener(
       "none"
     ) {
 
-      panel.style.display =
-        "";
+      panel.style.display = "";
 
     } else {
 
@@ -845,6 +1168,83 @@ $("membersBtn").addEventListener(
         "none";
     }
   }
+);
+
+
+/* =========================================================
+   MENÚ DEL GRUPO
+   ========================================================= */
+
+$("groupMenu").addEventListener(
+  "click",
+  () => {
+
+    showToast(
+      "Configuración del servidor próximamente."
+    );
+  }
+);
+
+
+/* =========================================================
+   SERVIDORES
+   ========================================================= */
+
+document
+  .querySelectorAll(".server")
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        if (
+          button.classList.contains(
+            "add-server"
+          )
+        ) {
+
+          showToast(
+            "La creación de servidores llegará después."
+          );
+
+          return;
+        }
+
+
+        document
+          .querySelectorAll(
+            ".server"
+          )
+          .forEach(item => {
+
+            item.classList.remove(
+              "active"
+            );
+
+          });
+
+
+        button.classList.add(
+          "active"
+        );
+
+
+        showToast(
+          "Servidor seleccionado."
+        );
+      }
+    );
+  });
+
+
+/* =========================================================
+   SALA DE VOZ
+   ========================================================= */
+
+$("voiceChannel").addEventListener(
+  "click",
+  () => openCall("voice")
 );
 
 
@@ -860,32 +1260,37 @@ function openCall(type) {
     );
 
 
-  if (
-    type === "voice"
-  ) {
+  if (type === "voice") {
 
     $("callTitle")
       .textContent =
       "Llamada de voz";
 
+
     $("callStatus")
       .textContent =
-      "Modo de prueba local.";
+      "Sala de voz de CatracVoice";
+
 
     $("videoArea")
       .classList.add(
         "hidden"
       );
 
-  } else {
+  }
+
+
+  if (type === "video") {
 
     $("callTitle")
       .textContent =
       "Videollamada";
 
+
     $("callStatus")
       .textContent =
-      "Modo de prueba local.";
+      "Videollamada de CatracVoice";
+
 
     $("videoArea")
       .classList.remove(
@@ -907,42 +1312,40 @@ $("videoCallBtn").addEventListener(
 );
 
 
-$("voiceChannel").addEventListener(
-  "click",
-  () => openCall("voice")
-);
-
-
-/* =========================================================
-   CERRAR LLAMADA
-   ========================================================= */
-
-function closeCall() {
-
-  stopScreen();
-
-  $("callModal")
-    .classList.add(
-      "hidden"
-    );
-}
-
-
 $("closeCall").addEventListener(
   "click",
-  closeCall
+  () => {
+
+    $("callModal")
+      .classList.add(
+        "hidden"
+      );
+
+  }
 );
 
 
 $("hangupBtn").addEventListener(
   "click",
-  closeCall
+  () => {
+
+    $("callModal")
+      .classList.add(
+        "hidden"
+      );
+
+  }
 );
 
 
 /* =========================================================
-   MICRÓFONO
+   MICRÓFONO / CÁMARA
    ========================================================= */
+
+let microphoneEnabled = true;
+
+let cameraEnabled = true;
+
 
 $("muteBtn").addEventListener(
   "click",
@@ -952,13 +1355,14 @@ $("muteBtn").addEventListener(
       !microphoneEnabled;
 
 
-    $("muteBtn").textContent =
+    $("muteBtn")
+      .textContent =
       microphoneEnabled
         ? "🎤"
         : "🔇";
 
 
-    toast(
+    showToast(
       microphoneEnabled
         ? "Micrófono activado."
         : "Micrófono silenciado."
@@ -966,10 +1370,6 @@ $("muteBtn").addEventListener(
   }
 );
 
-
-/* =========================================================
-   CÁMARA
-   ========================================================= */
 
 $("cameraBtn").addEventListener(
   "click",
@@ -979,13 +1379,14 @@ $("cameraBtn").addEventListener(
       !cameraEnabled;
 
 
-    $("cameraBtn").textContent =
+    $("cameraBtn")
+      .textContent =
       cameraEnabled
         ? "📹"
         : "🚫";
 
 
-    toast(
+    showToast(
       cameraEnabled
         ? "Cámara activada."
         : "Cámara desactivada."
@@ -998,6 +1399,9 @@ $("cameraBtn").addEventListener(
    COMPARTIR PANTALLA
    ========================================================= */
 
+let screenStream = null;
+
+
 async function shareScreen() {
 
   if (
@@ -1005,7 +1409,7 @@ async function shareScreen() {
     !navigator.mediaDevices.getDisplayMedia
   ) {
 
-    toast(
+    showToast(
       "Tu navegador no permite compartir pantalla."
     );
 
@@ -1063,87 +1467,59 @@ async function shareScreen() {
       screenStream;
 
 
-    video.play().catch(
-      () => {}
-    );
-
-
     const track =
       screenStream
         .getVideoTracks()[0];
 
 
-    if (track) {
-
-      track.addEventListener(
-        "ended",
-        () => {
-
-          stopScreen();
-
-          toast(
-            "Has dejado de compartir la pantalla."
-          );
-        }
-      );
-    }
-
-
-    toast(
-      "Pantalla compartida."
+    track.addEventListener(
+      "ended",
+      stopScreenShare
     );
 
 
   } catch (error) {
 
-    console.log(
-      error
-    );
+    console.error(error);
 
-    toast(
+    showToast(
       "Has cancelado compartir pantalla."
     );
   }
 }
 
 
-function stopScreen() {
+function stopScreenShare() {
 
   if (screenStream) {
 
     screenStream
       .getTracks()
       .forEach(
-        track => track.stop()
+        track =>
+          track.stop()
       );
 
-    screenStream =
-      null;
+    screenStream = null;
   }
 
 
   const video =
     $("screenVideo");
 
-  if (video) {
 
-    video.srcObject =
-      null;
-
-    video.style.display =
-      "none";
-  }
+  video.srcObject =
+    null;
 
 
-  const placeholder =
-    $("videoPlaceholder");
+  video.style.display =
+    "none";
 
-  if (placeholder) {
 
-    placeholder.classList.remove(
+  $("videoPlaceholder")
+    .classList.remove(
       "hidden"
     );
-  }
 }
 
 
@@ -1160,69 +1536,15 @@ $("modalScreenBtn").addEventListener(
 
 
 /* =========================================================
-   MÓVIL
+   MENÚ MÓVIL
    ========================================================= */
 
 $("mobileMenu").addEventListener(
   "click",
   () => {
 
-    const sidebar =
-      document.querySelector(
-        ".sidebar"
-      );
-
-
-    if (!sidebar) {
-      return;
-    }
-
-
-    if (
-      sidebar.style.display ===
-      "flex"
-    ) {
-
-      sidebar.style.display =
-        "";
-
-    } else {
-
-      sidebar.style.display =
-        "flex";
-
-      sidebar.style.position =
-        "fixed";
-
-      sidebar.style.left =
-        "72px";
-
-      sidebar.style.top =
-        "0";
-
-      sidebar.style.bottom =
-        "0";
-
-      sidebar.style.width =
-        "240px";
-
-      sidebar.style.zIndex =
-        "200";
-    }
-  }
-);
-
-
-/* =========================================================
-   AÑADIR SERVIDOR
-   ========================================================= */
-
-$("addServer").addEventListener(
-  "click",
-  () => {
-
-    toast(
-      "La creación de servidores se añadirá con el backend."
+    showToast(
+      "Menú móvil."
     );
   }
 );
@@ -1232,20 +1554,6 @@ $("addServer").addEventListener(
    INICIO
    ========================================================= */
 
-if (
-  !messages[currentChannel]
-) {
-
-  messages[currentChannel] =
-    [];
-}
-
-
-renderChannels();
-
-renderMessages();
-
-
 console.log(
-  "CatracVoice iniciado correctamente."
+  "CatracVoice conectado a Firebase."
 );
