@@ -48,6 +48,13 @@ const messages = {
       color: "orange",
       time: "10:58",
       text: "He creado este canal para organizar los planes."
+    },
+    {
+      name: "Alex",
+      initial: "A",
+      color: "green",
+      time: "11:02",
+      text: "Genial 👍"
     }
   ]
 
@@ -55,16 +62,17 @@ const messages = {
 
 
 let currentChannel = "general";
+let screenStream = null;
+let microphoneOn = true;
+let cameraOn = true;
 
 
-const $ = id =>
-  document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 
 function escapeHTML(text) {
 
-  const element =
-    document.createElement("div");
+  const element = document.createElement("div");
 
   element.textContent = text;
 
@@ -77,61 +85,97 @@ function showToast(text) {
 
   const toast = $("toast");
 
+  if (!toast) return;
+
   toast.textContent = text;
 
   toast.classList.add("show");
 
   clearTimeout(window.toastTimer);
 
-  window.toastTimer =
-    setTimeout(
-      () => toast.classList.remove("show"),
-      2500
-    );
+  window.toastTimer = setTimeout(() => {
+
+    toast.classList.remove("show");
+
+  }, 2500);
 
 }
 
 
+/* ==============================
+   MENSAJES
+   ============================== */
+
 function renderMessages() {
 
-  const container =
-    $("messages");
+  const container = $("messages");
 
-  const list =
-    messages[currentChannel] || [];
+  if (!container) return;
 
-  container.innerHTML =
-    list.map(message => `
+  const list = messages[currentChannel] || [];
 
-      <article class="message">
+  container.innerHTML = `
 
-        <div class="avatar ${message.color}">
-          ${escapeHTML(message.initial)}
+    <div class="welcome">
+
+      <div class="welcome-icon">
+        #
+      </div>
+
+      <h2>
+        ¡Bienvenido a #${escapeHTML(currentChannel)}!
+      </h2>
+
+      <p>
+        Este es el comienzo del canal.
+      </p>
+
+    </div>
+
+  `;
+
+
+  list.forEach(message => {
+
+    const article =
+      document.createElement("article");
+
+    article.className = "message";
+
+
+    article.innerHTML = `
+
+      <div class="avatar ${escapeHTML(message.color || "")}">
+        ${escapeHTML(message.initial)}
+      </div>
+
+      <div class="message-info">
+
+        <div class="message-meta">
+
+          <strong>
+            ${escapeHTML(message.name)}
+          </strong>
+
+          <time>
+            ${escapeHTML(message.time)}
+          </time>
+
         </div>
 
-        <div class="message-info">
+        <p class="message-text">
+          ${escapeHTML(message.text)}
+        </p>
 
-          <div class="message-meta">
+      </div>
 
-            <strong>
-              ${escapeHTML(message.name)}
-            </strong>
+    `;
 
-            <time>
-              ${escapeHTML(message.time)}
-            </time>
 
-          </div>
+    container.appendChild(article);
 
-          <p class="message-text">
-            ${escapeHTML(message.text)}
-          </p>
+  });
 
-        </div>
-
-      </article>
-
-    `).join("");
 
   container.scrollTop =
     container.scrollHeight;
@@ -139,10 +183,13 @@ function renderMessages() {
 }
 
 
-/* LOGIN DE PRUEBA */
+/* ==============================
+   LOGIN
+   ============================== */
 
-$("authForm")
-  .addEventListener("submit", event => {
+$("authForm").addEventListener(
+  "submit",
+  event => {
 
     event.preventDefault();
 
@@ -151,39 +198,54 @@ $("authForm")
 
     if (!email) return;
 
-    $("authScreen")
-      .classList.add("hidden");
-
-    $("app")
-      .classList.remove("hidden");
 
     const username =
       email
         .split("@")[0]
-        .replace(/[._-]/g, " ");
+        .replace(/[._-]/g, " ")
+        .trim();
+
 
     $("userName").textContent =
       username || "Tú";
 
+
+    $("authScreen")
+      .classList.add("hidden");
+
+
+    $("app")
+      .classList.remove("hidden");
+
+
     renderMessages();
 
-  });
+  }
+);
 
 
-$("registerBtn")
-  .addEventListener("click", () => {
+/* REGISTRO */
+
+$("registerBtn").addEventListener(
+  "click",
+  () => {
 
     showToast(
       "El registro real se conectará al backend seguro."
     );
 
-  });
+  }
+);
 
 
-$("logoutBtn")
-  .addEventListener("click", () => {
+/* CERRAR SESIÓN */
 
-    $("app").classList.add("hidden");
+$("logoutBtn").addEventListener(
+  "click",
+  () => {
+
+    $("app")
+      .classList.add("hidden");
 
     $("authScreen")
       .classList.remove("hidden");
@@ -192,10 +254,13 @@ $("logoutBtn")
 
     $("password").value = "";
 
-  });
+  }
+);
 
 
-/* CANALES */
+/* ==============================
+   CANALES
+   ============================== */
 
 document
   .querySelectorAll("[data-channel]")
@@ -208,6 +273,7 @@ document
         currentChannel =
           button.dataset.channel;
 
+
         document
           .querySelectorAll("[data-channel]")
           .forEach(item => {
@@ -219,13 +285,16 @@ document
 
           });
 
+
         $("channelTitle")
           .textContent =
           currentChannel;
 
+
         $("messageInput")
           .placeholder =
           `Escribe un mensaje en #${currentChannel}...`;
+
 
         renderMessages();
 
@@ -235,80 +304,104 @@ document
   });
 
 
-/* MENSAJES */
+/* ==============================
+   ENVIAR MENSAJE
+   ============================== */
 
-$("messageForm")
-  .addEventListener("submit", event => {
+$("messageForm").addEventListener(
+  "submit",
+  event => {
 
     event.preventDefault();
+
 
     const input =
       $("messageInput");
 
+
     const text =
       input.value.trim();
 
+
     if (!text) return;
 
+
     const time =
-      new Date()
-        .toLocaleTimeString(
-          [],
-          {
-            hour: "2-digit",
-            minute: "2-digit"
-          }
-        );
+      new Date().toLocaleTimeString(
+        [],
+        {
+          hour: "2-digit",
+          minute: "2-digit"
+        }
+      );
 
-    messages[currentChannel]
-      .push({
 
-        name: "Tú",
-        initial: "T",
-        color: "",
-        time,
-        text
+    messages[currentChannel].push({
 
-      });
+      name: "Tú",
+
+      initial: "T",
+
+      color: "",
+
+      time,
+
+      text
+
+    });
+
 
     input.value = "";
 
     renderMessages();
 
-  });
+  }
+);
 
 
-/* EMOJI */
+/* ==============================
+   EMOJI
+   ============================== */
 
-$("emojiBtn")
-  .addEventListener("click", () => {
+$("emojiBtn").addEventListener(
+  "click",
+  () => {
 
     $("messageInput").value += " 😊";
 
     $("messageInput").focus();
 
-  });
+  }
+);
 
 
-/* ARCHIVOS */
+/* ==============================
+   ARCHIVOS
+   ============================== */
 
-$("attachBtn")
-  .addEventListener("click", () => {
+$("attachBtn").addEventListener(
+  "click",
+  () => {
 
     showToast(
       "Los archivos se añadirán con el almacenamiento seguro."
     );
 
-  });
+  }
+);
 
 
-/* MIEMBROS */
+/* ==============================
+   MIEMBROS
+   ============================== */
 
-$("membersBtn")
-  .addEventListener("click", () => {
+$("membersBtn").addEventListener(
+  "click",
+  () => {
 
     const panel =
       $("membersPanel");
+
 
     if (window.innerWidth <= 1000) {
 
@@ -320,39 +413,51 @@ $("membersBtn")
 
     }
 
+
     panel.style.display =
       panel.style.display === "none"
         ? ""
         : "none";
 
-  });
+  }
+);
 
 
-/* CREAR CANAL */
+/* ==============================
+   CREAR CANAL
+   ============================== */
 
-$("addChannel")
-  .addEventListener("click", () => {
+$("addChannel").addEventListener(
+  "click",
+  () => {
 
     showToast(
       "La creación de canales llegará con la base de datos."
     );
 
-  });
+  }
+);
 
 
-/* MENÚ GRUPO */
+/* ==============================
+   MENÚ DEL GRUPO
+   ============================== */
 
-$("groupMenu")
-  .addEventListener("click", () => {
+$("groupMenu").addEventListener(
+  "click",
+  () => {
 
     showToast(
       "Configuración del grupo próximamente."
     );
 
-  });
+  }
+);
 
 
-/* SERVIDORES */
+/* ==============================
+   SERVIDORES
+   ============================== */
 
 document
   .querySelectorAll(".server")
@@ -363,9 +468,7 @@ document
       () => {
 
         if (
-          button.classList.contains(
-            "add-server"
-          )
+          button.classList.contains("add-server")
         ) {
 
           showToast(
@@ -376,11 +479,13 @@ document
 
         }
 
+
         document
           .querySelectorAll(".server")
           .forEach(item =>
             item.classList.remove("active")
           );
+
 
         button.classList.add("active");
 
@@ -390,12 +495,19 @@ document
   });
 
 
-/* LLAMADA */
+/* ==============================
+   LLAMADAS
+   ============================== */
 
 function openCall(type) {
 
   $("callModal")
     .classList.remove("hidden");
+
+
+  $("videoArea")
+    .classList.add("hidden");
+
 
   if (type === "voice") {
 
@@ -403,14 +515,13 @@ function openCall(type) {
       .textContent =
       "Llamada de voz";
 
+
     $("callStatus")
       .textContent =
       "La llamada real se conectará mediante WebRTC.";
 
-    $("videoArea")
-      .classList.add("hidden");
-
   }
+
 
   if (type === "video") {
 
@@ -418,9 +529,11 @@ function openCall(type) {
       .textContent =
       "Videollamada";
 
+
     $("callStatus")
       .textContent =
       "La videollamada real se conectará mediante WebRTC.";
+
 
     $("videoArea")
       .classList.remove("hidden");
@@ -430,39 +543,107 @@ function openCall(type) {
 }
 
 
-$("voiceCallBtn")
-  .addEventListener(
-    "click",
-    () => openCall("voice")
-  );
+$("voiceCallBtn").addEventListener(
+  "click",
+  () => openCall("voice")
+);
 
 
-$("videoCallBtn")
-  .addEventListener(
-    "click",
-    () => openCall("video")
-  );
+$("videoCallBtn").addEventListener(
+  "click",
+  () => openCall("video")
+);
 
 
-$("closeCall")
-  .addEventListener(
-    "click",
-    () =>
-      $("callModal")
-        .classList.add("hidden")
-  );
+$("voiceChannel").addEventListener(
+  "click",
+  () => openCall("voice")
+);
 
 
-$("hangupBtn")
-  .addEventListener(
-    "click",
-    () =>
-      $("callModal")
-        .classList.add("hidden")
-  );
+/* CERRAR LLAMADA */
+
+function closeCall() {
+
+  $("callModal")
+    .classList.add("hidden");
+
+  stopScreenShare();
+
+}
 
 
-/* COMPARTIR PANTALLA */
+$("closeCall").addEventListener(
+  "click",
+  closeCall
+);
+
+
+$("hangupBtn").addEventListener(
+  "click",
+  closeCall
+);
+
+
+/* ==============================
+   MICRÓFONO
+   ============================== */
+
+$("muteBtn").addEventListener(
+  "click",
+  () => {
+
+    microphoneOn =
+      !microphoneOn;
+
+
+    $("muteBtn").textContent =
+      microphoneOn
+        ? "🎤"
+        : "🔇";
+
+
+    showToast(
+      microphoneOn
+        ? "Micrófono activado"
+        : "Micrófono silenciado"
+    );
+
+  }
+);
+
+
+/* ==============================
+   CÁMARA
+   ============================== */
+
+$("cameraBtn").addEventListener(
+  "click",
+  () => {
+
+    cameraOn =
+      !cameraOn;
+
+
+    $("cameraBtn").textContent =
+      cameraOn
+        ? "📹"
+        : "🚫";
+
+
+    showToast(
+      cameraOn
+        ? "Cámara activada"
+        : "Cámara desactivada"
+    );
+
+  }
+);
+
+
+/* ==============================
+   COMPARTIR PANTALLA
+   ============================== */
 
 async function shareScreen() {
 
@@ -479,35 +660,68 @@ async function shareScreen() {
 
   }
 
+
   try {
 
-    const stream =
-      await navigator.mediaDevices
-        .getDisplayMedia({
-          video: true,
-          audio: true
-        });
+    screenStream =
+      await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      });
 
-    showToast(
-      "Pantalla compartida. La conexión con tus amigos llegará con WebRTC."
-    );
 
-    stream
-      .getTracks()
-      .forEach(track => {
+    $("callModal")
+      .classList.remove("hidden");
 
-        track.addEventListener(
-          "ended",
-          () => {
 
-            showToast(
-              "Has dejado de compartir la pantalla."
-            );
+    $("callTitle")
+      .textContent =
+      "Compartiendo pantalla";
 
-          }
+
+    $("callStatus")
+      .textContent =
+      "Solo visible para ti en esta demo.";
+
+
+    $("videoArea")
+      .classList.remove("hidden");
+
+
+    $("videoPlaceholder")
+      .style.display =
+      "none";
+
+
+    const video =
+      $("screenVideo");
+
+
+    video.style.display =
+      "block";
+
+
+    video.srcObject =
+      screenStream;
+
+
+    const track =
+      screenStream.getVideoTracks()[0];
+
+
+    track.addEventListener(
+      "ended",
+      () => {
+
+        stopScreenShare();
+
+        showToast(
+          "Has dejado de compartir la pantalla."
         );
 
-      });
+      }
+    );
+
 
   } catch {
 
@@ -520,44 +734,79 @@ async function shareScreen() {
 }
 
 
-$("screenShareBtn")
-  .addEventListener(
-    "click",
-    shareScreen
-  );
+function stopScreenShare() {
 
+  if (screenStream) {
 
-$("modalScreenBtn")
-  .addEventListener(
-    "click",
-    shareScreen
-  );
-
-
-/* SALA DE VOZ */
-
-$("voiceChannel")
-  .addEventListener(
-    "click",
-    () => openCall("voice")
-  );
-
-
-/* MÓVIL */
-
-$("mobileMenu")
-  .addEventListener(
-    "click",
-    () => {
-
-      showToast(
-        "El menú móvil estará disponible en la siguiente versión."
+    screenStream
+      .getTracks()
+      .forEach(track =>
+        track.stop()
       );
 
-    }
-  );
+    screenStream = null;
+
+  }
 
 
-/* INICIO */
+  const video =
+    $("screenVideo");
+
+
+  if (video) {
+
+    video.srcObject = null;
+
+    video.style.display =
+      "none";
+
+  }
+
+
+  const placeholder =
+    $("videoPlaceholder");
+
+
+  if (placeholder) {
+
+    placeholder.style.display =
+      "";
+
+  }
+
+}
+
+
+$("screenShareBtn").addEventListener(
+  "click",
+  shareScreen
+);
+
+
+$("modalScreenBtn").addEventListener(
+  "click",
+  shareScreen
+);
+
+
+/* ==============================
+   MÓVIL
+   ============================== */
+
+$("mobileMenu").addEventListener(
+  "click",
+  () => {
+
+    showToast(
+      "El menú móvil estará disponible en la siguiente versión."
+    );
+
+  }
+);
+
+
+/* ==============================
+   INICIO
+   ============================== */
 
 renderMessages();
