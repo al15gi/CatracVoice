@@ -1,12 +1,11 @@
 const messages = {
-
   general: [
     {
       name: "Alex",
       initial: "A",
       color: "green",
       time: "11:42",
-      text: "¡Bienvenidos al nuevo chat! 👋"
+      text: "¡Bienvenidos a CatracVoice! 👋"
     },
     {
       name: "Mario",
@@ -57,57 +56,41 @@ const messages = {
       text: "Genial 👍"
     }
   ]
-
 };
-
 
 let currentChannel = "general";
 let screenStream = null;
-let microphoneOn = true;
-let cameraOn = true;
 
-
-const $ = id => document.getElementById(id);
-
-
-function escapeHTML(text) {
-
-  const element = document.createElement("div");
-
-  element.textContent = text;
-
-  return element.innerHTML;
-
+function $(id) {
+  return document.getElementById(id);
 }
 
+function escapeHTML(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
 
-function showToast(text) {
+function toast(text) {
+  const element = $("toast");
 
-  const toast = $("toast");
+  if (!element) return;
 
-  if (!toast) return;
-
-  toast.textContent = text;
-
-  toast.classList.add("show");
+  element.textContent = text;
+  element.classList.add("show");
 
   clearTimeout(window.toastTimer);
 
   window.toastTimer = setTimeout(() => {
-
-    toast.classList.remove("show");
-
+    element.classList.remove("show");
   }, 2500);
-
 }
 
-
-/* ==============================
+/* =========================
    MENSAJES
-   ============================== */
+========================= */
 
 function renderMessages() {
-
   const container = $("messages");
 
   if (!container) return;
@@ -115,89 +98,54 @@ function renderMessages() {
   const list = messages[currentChannel] || [];
 
   container.innerHTML = `
-
     <div class="welcome">
-
-      <div class="welcome-icon">
-        #
-      </div>
-
-      <h2>
-        ¡Bienvenido a #${escapeHTML(currentChannel)}!
-      </h2>
-
-      <p>
-        Este es el comienzo del canal.
-      </p>
-
+      <div class="welcome-icon">#</div>
+      <h2>¡Bienvenido a #${escapeHTML(currentChannel)}!</h2>
+      <p>Este es el comienzo del canal.</p>
     </div>
-
   `;
 
-
   list.forEach(message => {
+    const article = document.createElement("article");
 
-    const article =
-      document.createElement("article");
-
-    article.className = "message";
-
+    article.className = "msg";
 
     article.innerHTML = `
-
       <div class="avatar ${escapeHTML(message.color || "")}">
         ${escapeHTML(message.initial)}
       </div>
 
-      <div class="message-info">
-
-        <div class="message-meta">
-
-          <strong>
-            ${escapeHTML(message.name)}
-          </strong>
-
-          <time>
-            ${escapeHTML(message.time)}
-          </time>
-
+      <div>
+        <div class="meta">
+          <strong>${escapeHTML(message.name)}</strong>
+          <time>${escapeHTML(message.time)}</time>
         </div>
 
-        <p class="message-text">
+        <p class="text">
           ${escapeHTML(message.text)}
         </p>
-
       </div>
-
     `;
 
-
     container.appendChild(article);
-
   });
 
-
-  container.scrollTop =
-    container.scrollHeight;
-
+  container.scrollTop = container.scrollHeight;
 }
 
-
-/* ==============================
+/* =========================
    LOGIN
-   ============================== */
+========================= */
 
-$("authForm").addEventListener(
-  "submit",
-  event => {
+const loginForm = $("loginForm");
 
+if (loginForm) {
+  loginForm.addEventListener("submit", event => {
     event.preventDefault();
 
-    const email =
-      $("email").value.trim();
+    const email = $("email").value.trim();
 
     if (!email) return;
-
 
     const username =
       email
@@ -205,445 +153,264 @@ $("authForm").addEventListener(
         .replace(/[._-]/g, " ")
         .trim();
 
+    $("name").textContent = username || "Tú";
 
-    $("userName").textContent =
-      username || "Tú";
-
-
-    $("authScreen")
-      .classList.add("hidden");
-
-
-    $("app")
-      .classList.remove("hidden");
-
+    $("login").style.display = "none";
+    $("app").style.display = "grid";
 
     renderMessages();
+  });
+}
 
-  }
-);
+/* =========================
+   LOGOUT
+========================= */
 
+const logout = $("logout");
 
-/* REGISTRO */
-
-$("registerBtn").addEventListener(
-  "click",
-  () => {
-
-    showToast(
-      "El registro real se conectará al backend seguro."
-    );
-
-  }
-);
-
-
-/* CERRAR SESIÓN */
-
-$("logoutBtn").addEventListener(
-  "click",
-  () => {
-
-    $("app")
-      .classList.add("hidden");
-
-    $("authScreen")
-      .classList.remove("hidden");
+if (logout) {
+  logout.addEventListener("click", () => {
+    $("app").style.display = "none";
+    $("login").style.display = "grid";
 
     $("email").value = "";
-
-    $("password").value = "";
-
-  }
-);
-
-
-/* ==============================
-   CANALES
-   ============================== */
-
-document
-  .querySelectorAll("[data-channel]")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        currentChannel =
-          button.dataset.channel;
-
-
-        document
-          .querySelectorAll("[data-channel]")
-          .forEach(item => {
-
-            item.classList.toggle(
-              "active",
-              item === button
-            );
-
-          });
-
-
-        $("channelTitle")
-          .textContent =
-          currentChannel;
-
-
-        $("messageInput")
-          .placeholder =
-          `Escribe un mensaje en #${currentChannel}...`;
-
-
-        renderMessages();
-
-      }
-    );
-
+    $("pass").value = "";
   });
+}
 
+/* =========================
+   CANALES
+========================= */
 
-/* ==============================
-   ENVIAR MENSAJE
-   ============================== */
+document.querySelectorAll("[data-c]").forEach(button => {
+  button.addEventListener("click", () => {
 
-$("messageForm").addEventListener(
-  "submit",
-  event => {
+    currentChannel = button.dataset.c;
 
+    document
+      .querySelectorAll("[data-c]")
+      .forEach(item => {
+        item.classList.toggle(
+          "active",
+          item === button
+        );
+      });
+
+    $("channel").textContent = currentChannel;
+
+    renderMessages();
+  });
+});
+
+/* =========================
+   ENVIAR MENSAJES
+========================= */
+
+const form = $("form");
+
+if (form) {
+  form.addEventListener("submit", event => {
     event.preventDefault();
 
-
-    const input =
-      $("messageInput");
-
-
-    const text =
-      input.value.trim();
-
+    const input = $("message");
+    const text = input.value.trim();
 
     if (!text) return;
 
-
-    const time =
-      new Date().toLocaleTimeString(
-        [],
-        {
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      );
-
-
-    messages[currentChannel].push({
-
-      name: "Tú",
-
-      initial: "T",
-
-      color: "",
-
-      time,
-
-      text
-
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
     });
 
+    messages[currentChannel].push({
+      name: "Tú",
+      initial: "T",
+      color: "",
+      time,
+      text
+    });
 
     input.value = "";
 
     renderMessages();
-
-  }
-);
-
-
-/* ==============================
-   EMOJI
-   ============================== */
-
-$("emojiBtn").addEventListener(
-  "click",
-  () => {
-
-    $("messageInput").value += " 😊";
-
-    $("messageInput").focus();
-
-  }
-);
-
-
-/* ==============================
-   ARCHIVOS
-   ============================== */
-
-$("attachBtn").addEventListener(
-  "click",
-  () => {
-
-    showToast(
-      "Los archivos se añadirán con el almacenamiento seguro."
-    );
-
-  }
-);
-
-
-/* ==============================
-   MIEMBROS
-   ============================== */
-
-$("membersBtn").addEventListener(
-  "click",
-  () => {
-
-    const panel =
-      $("membersPanel");
-
-
-    if (window.innerWidth <= 1000) {
-
-      showToast(
-        "La lista de miembros aparecerá aquí."
-      );
-
-      return;
-
-    }
-
-
-    panel.style.display =
-      panel.style.display === "none"
-        ? ""
-        : "none";
-
-  }
-);
-
-
-/* ==============================
-   CREAR CANAL
-   ============================== */
-
-$("addChannel").addEventListener(
-  "click",
-  () => {
-
-    showToast(
-      "La creación de canales llegará con la base de datos."
-    );
-
-  }
-);
-
-
-/* ==============================
-   MENÚ DEL GRUPO
-   ============================== */
-
-$("groupMenu").addEventListener(
-  "click",
-  () => {
-
-    showToast(
-      "Configuración del grupo próximamente."
-    );
-
-  }
-);
-
-
-/* ==============================
-   SERVIDORES
-   ============================== */
-
-document
-  .querySelectorAll(".server")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        if (
-          button.classList.contains("add-server")
-        ) {
-
-          showToast(
-            "Crear un grupo llegará próximamente."
-          );
-
-          return;
-
-        }
-
-
-        document
-          .querySelectorAll(".server")
-          .forEach(item =>
-            item.classList.remove("active")
-          );
-
-
-        button.classList.add("active");
-
-      }
-    );
-
   });
+}
 
+/* =========================
+   EMOJI
+========================= */
 
-/* ==============================
+const emoji = $("emoji");
+
+if (emoji) {
+  emoji.addEventListener("click", () => {
+    $("message").value += " 😊";
+    $("message").focus();
+  });
+}
+
+/* =========================
+   ARCHIVOS
+========================= */
+
+const plus = $("plus");
+
+if (plus) {
+  plus.addEventListener("click", () => {
+    toast("La subida de archivos estará disponible próximamente.");
+  });
+}
+
+/* =========================
+   CREAR CANAL
+========================= */
+
+const add = $("add");
+
+if (add) {
+  add.addEventListener("click", () => {
+    toast("La creación de canales estará disponible próximamente.");
+  });
+}
+
+/* =========================
+   MENÚ
+========================= */
+
+const workspaceButton =
+  document.querySelector(".workspace button");
+
+if (workspaceButton) {
+  workspaceButton.addEventListener("click", () => {
+    toast("Configuración de CatracVoice próximamente.");
+  });
+}
+
+/* =========================
    LLAMADAS
-   ============================== */
+========================= */
 
 function openCall(type) {
+  const modal = $("modal");
 
-  $("callModal")
-    .classList.remove("hidden");
+  if (!modal) return;
 
-
-  $("videoArea")
-    .classList.add("hidden");
-
+  modal.style.display = "flex";
 
   if (type === "voice") {
-
-    $("callTitle")
-      .textContent =
-      "Llamada de voz";
-
-
-    $("callStatus")
-      .textContent =
-      "La llamada real se conectará mediante WebRTC.";
-
+    $("callTitle").textContent = "Llamada de voz";
+    $("callStatus").textContent =
+      "Modo de demostración local.";
   }
-
 
   if (type === "video") {
+    $("callTitle").textContent = "Videollamada";
+    $("callStatus").textContent =
+      "Modo de demostración local.";
+  }
+}
 
-    $("callTitle")
-      .textContent =
-      "Videollamada";
+const call = $("call");
 
+if (call) {
+  call.addEventListener("click", () => {
+    openCall("voice");
+  });
+}
 
-    $("callStatus")
-      .textContent =
-      "La videollamada real se conectará mediante WebRTC.";
+const videoCall = $("videoCall");
 
+if (videoCall) {
+  videoCall.addEventListener("click", () => {
+    openCall("video");
+  });
+}
 
-    $("videoArea")
-      .classList.remove("hidden");
+const voiceRoom = $("voiceRoom");
 
+if (voiceRoom) {
+  voiceRoom.addEventListener("click", () => {
+    openCall("voice");
+  });
+}
+
+/* =========================
+   CERRAR LLAMADA
+========================= */
+
+function closeModal() {
+  const modal = $("modal");
+
+  if (modal) {
+    modal.style.display = "none";
   }
 
-}
-
-
-$("voiceCallBtn").addEventListener(
-  "click",
-  () => openCall("voice")
-);
-
-
-$("videoCallBtn").addEventListener(
-  "click",
-  () => openCall("video")
-);
-
-
-$("voiceChannel").addEventListener(
-  "click",
-  () => openCall("voice")
-);
-
-
-/* CERRAR LLAMADA */
-
-function closeCall() {
-
-  $("callModal")
-    .classList.add("hidden");
-
   stopScreenShare();
-
 }
 
+const closeButton = $("close");
 
-$("closeCall").addEventListener(
-  "click",
-  closeCall
-);
+if (closeButton) {
+  closeButton.addEventListener("click", closeModal);
+}
 
+const hangButton = $("hang");
 
-$("hangupBtn").addEventListener(
-  "click",
-  closeCall
-);
+if (hangButton) {
+  hangButton.addEventListener("click", closeModal);
+}
 
-
-/* ==============================
+/* =========================
    MICRÓFONO
-   ============================== */
+========================= */
 
-$("muteBtn").addEventListener(
-  "click",
-  () => {
+let microphoneEnabled = true;
 
-    microphoneOn =
-      !microphoneOn;
+const muteButton = $("mute");
 
+if (muteButton) {
+  muteButton.addEventListener("click", () => {
 
-    $("muteBtn").textContent =
-      microphoneOn
-        ? "🎤"
-        : "🔇";
+    microphoneEnabled = !microphoneEnabled;
 
+    muteButton.textContent =
+      microphoneEnabled ? "🎤" : "🔇";
 
-    showToast(
-      microphoneOn
+    toast(
+      microphoneEnabled
         ? "Micrófono activado"
         : "Micrófono silenciado"
     );
+  });
+}
 
-  }
-);
-
-
-/* ==============================
+/* =========================
    CÁMARA
-   ============================== */
+========================= */
 
-$("cameraBtn").addEventListener(
-  "click",
-  () => {
+let cameraEnabled = true;
 
-    cameraOn =
-      !cameraOn;
+const cameraButton = $("camera");
 
+if (cameraButton) {
+  cameraButton.addEventListener("click", () => {
 
-    $("cameraBtn").textContent =
-      cameraOn
-        ? "📹"
-        : "🚫";
+    cameraEnabled = !cameraEnabled;
 
+    cameraButton.textContent =
+      cameraEnabled ? "📹" : "🚫";
 
-    showToast(
-      cameraOn
+    toast(
+      cameraEnabled
         ? "Cámara activada"
         : "Cámara desactivada"
     );
+  });
+}
 
-  }
-);
-
-
-/* ==============================
+/* =========================
    COMPARTIR PANTALLA
-   ============================== */
+========================= */
 
 async function shareScreen() {
 
@@ -651,15 +418,12 @@ async function shareScreen() {
     !navigator.mediaDevices ||
     !navigator.mediaDevices.getDisplayMedia
   ) {
-
-    showToast(
+    toast(
       "Tu navegador no permite compartir pantalla."
     );
 
     return;
-
   }
-
 
   try {
 
@@ -669,70 +433,42 @@ async function shareScreen() {
         audio: true
       });
 
+    const modal = $("modal");
 
-    $("callModal")
-      .classList.remove("hidden");
+    const video = $("screenVideo");
 
+    const placeholder = $("placeholder");
 
-    $("callTitle")
-      .textContent =
+    modal.style.display = "flex";
+
+    $("callTitle").textContent =
       "Compartiendo pantalla";
 
+    $("callStatus").textContent =
+      "La pantalla se está mostrando en esta demo.";
 
-    $("callStatus")
-      .textContent =
-      "Solo visible para ti en esta demo.";
+    placeholder.style.display = "none";
 
+    video.style.display = "block";
 
-    $("videoArea")
-      .classList.remove("hidden");
-
-
-    $("videoPlaceholder")
-      .style.display =
-      "none";
-
-
-    const video =
-      $("screenVideo");
-
-
-    video.style.display =
-      "block";
-
-
-    video.srcObject =
-      screenStream;
-
+    video.srcObject = screenStream;
 
     const track =
       screenStream.getVideoTracks()[0];
 
-
     track.addEventListener(
       "ended",
       () => {
-
         stopScreenShare();
-
-        showToast(
-          "Has dejado de compartir la pantalla."
-        );
-
+        toast("Has dejado de compartir la pantalla.");
       }
     );
 
+  } catch (error) {
 
-  } catch {
-
-    showToast(
-      "Has cancelado compartir pantalla."
-    );
-
+    toast("Has cancelado compartir pantalla.");
   }
-
 }
-
 
 function stopScreenShare() {
 
@@ -740,73 +476,111 @@ function stopScreenShare() {
 
     screenStream
       .getTracks()
-      .forEach(track =>
-        track.stop()
-      );
+      .forEach(track => track.stop());
 
     screenStream = null;
-
   }
 
+  const video = $("screenVideo");
 
-  const video =
-    $("screenVideo");
-
+  const placeholder = $("placeholder");
 
   if (video) {
-
     video.srcObject = null;
-
-    video.style.display =
-      "none";
-
+    video.style.display = "none";
   }
-
-
-  const placeholder =
-    $("videoPlaceholder");
-
 
   if (placeholder) {
-
-    placeholder.style.display =
-      "";
-
+    placeholder.style.display = "block";
   }
-
 }
 
+const screenButton = $("screen");
 
-$("screenShareBtn").addEventListener(
-  "click",
-  shareScreen
-);
+if (screenButton) {
+  screenButton.addEventListener(
+    "click",
+    shareScreen
+  );
+}
 
+const modalScreenButton = $("modalScreen");
 
-$("modalScreenBtn").addEventListener(
-  "click",
-  shareScreen
-);
+if (modalScreenButton) {
+  modalScreenButton.addEventListener(
+    "click",
+    shareScreen
+  );
+}
 
+/* =========================
+   MIEMBROS
+========================= */
 
-/* ==============================
-   MÓVIL
-   ============================== */
+const membersButton = $("membersBtn");
 
-$("mobileMenu").addEventListener(
-  "click",
-  () => {
+if (membersButton) {
+  membersButton.addEventListener("click", () => {
 
-    showToast(
-      "El menú móvil estará disponible en la siguiente versión."
-    );
+    const members = $("members");
 
-  }
-);
+    if (!members) return;
 
+    if (window.innerWidth <= 800) {
+      toast("Los miembros aparecen en la versión de escritorio.");
+      return;
+    }
 
-/* ==============================
-   INICIO
-   ============================== */
+    if (members.style.display === "none") {
+      members.style.display = "";
+    } else {
+      members.style.display = "none";
+    }
+  });
+}
 
-renderMessages();
+/* =========================
+   SERVIDORES
+========================= */
+
+document
+  .querySelectorAll(".server")
+  .forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      if (button.classList.contains("add")) {
+
+        toast(
+          "Crear un nuevo servidor estará disponible próximamente."
+        );
+
+        return;
+      }
+
+      document
+        .querySelectorAll(".server")
+        .forEach(item =>
+          item.classList.remove("active")
+        );
+
+      button.classList.add("active");
+    });
+  });
+
+/* =========================
+   MENÚ MÓVIL
+========================= */
+
+const mobileButton =
+  document.querySelector(".mobile");
+
+if (mobileButton) {
+
+  mobileButton.addEventListener(
+    "click",
+    () => {
+      toast("Menú móvil próximamente.");
+    }
+  );
+}
