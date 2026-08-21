@@ -1,9 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#111318">
+
+  <meta name="theme-color" content="#111214">
 
   <title>CatracVoice</title>
 
@@ -12,28 +13,28 @@
 
 <body>
 
-  <!-- =========================
-       PANTALLA DE AUTENTICACIÓN
-       ========================= -->
+  <!-- =====================================================
+       LOGIN
+       ===================================================== -->
 
   <section id="authScreen" class="auth-screen">
 
     <div class="auth-card">
 
-      <div class="brand-logo">
+      <div class="logo">
         CV
       </div>
 
       <h1>CatracVoice</h1>
 
-      <p class="auth-subtitle">
+      <p class="auth-description">
         Habla, juega y comparte con tus amigos.
       </p>
 
       <form id="authForm">
 
         <label for="email">
-          CORREO ELECTRÓNICO
+          CORREO
         </label>
 
         <input
@@ -52,14 +53,14 @@
           id="password"
           type="password"
           placeholder="Contraseña"
-          autocomplete="current-password"
           minlength="8"
+          autocomplete="current-password"
           required
         >
 
         <button
           type="submit"
-          class="primary-button"
+          class="primary-button login-button"
         >
           Entrar
         </button>
@@ -68,14 +69,14 @@
 
       <button
         id="registerBtn"
-        class="secondary-button"
+        class="link-button"
         type="button"
       >
         Crear una cuenta
       </button>
 
-      <p class="auth-demo">
-        CatracVoice · versión inicial
+      <p class="demo-text">
+        Demo local de CatracVoice.
       </p>
 
     </div>
@@ -83,19 +84,21 @@
   </section>
 
 
-  <!-- =========================
+  <!-- =====================================================
        APLICACIÓN
-       ========================= -->
+       ===================================================== -->
 
   <div id="app" class="app hidden">
 
-    <!-- SERVIDORES -->
+    <!-- ===================================================
+         SERVIDORES
+         =================================================== -->
 
     <aside class="server-sidebar">
 
       <button
         class="server active"
-        data-server="catrac"
+        data-server="catracvoice"
         title="CatracVoice"
       >
         CV
@@ -111,10 +114,10 @@
 
       <button
         class="server"
-        data-server="music"
-        title="Música"
+        data-server="friends"
+        title="Amigos"
       >
-        🎵
+        👥
       </button>
 
       <div class="server-separator"></div>
@@ -130,21 +133,29 @@
     </aside>
 
 
-    <!-- SIDEBAR DE CANALES -->
+    <!-- ===================================================
+         SIDEBAR
+         =================================================== -->
 
-    <aside class="channel-sidebar">
+    <aside class="sidebar">
 
       <header class="workspace-header">
 
-        <div>
+        <div class="workspace-info">
+
           <strong>CatracVoice</strong>
-          <span>Servidor privado</span>
+
+          <span>
+            Grupo privado
+          </span>
+
         </div>
 
         <button
           id="groupMenu"
-          class="icon-button"
+          class="header-button"
           type="button"
+          title="Menú"
         >
           ⋯
         </button>
@@ -152,9 +163,9 @@
       </header>
 
 
-      <div class="channel-list">
+      <div class="channels-container">
 
-        <!-- TEXTO -->
+        <!-- CANALES DE TEXTO -->
 
         <div class="channel-category">
 
@@ -165,6 +176,7 @@
           <button
             id="addChannel"
             type="button"
+            title="Crear canal"
           >
             +
           </button>
@@ -172,37 +184,10 @@
         </div>
 
 
-        <button
-          class="channel active"
-          data-channel="general"
-          type="button"
-        >
-          <span class="channel-symbol">#</span>
-          <span>general</span>
-        </button>
+        <div id="textChannels"></div>
 
 
-        <button
-          class="channel"
-          data-channel="gaming"
-          type="button"
-        >
-          <span class="channel-symbol">#</span>
-          <span>gaming</span>
-        </button>
-
-
-        <button
-          class="channel"
-          data-channel="planes"
-          type="button"
-        >
-          <span class="channel-symbol">#</span>
-          <span>planes</span>
-        </button>
-
-
-        <!-- VOZ -->
+        <!-- CANALES DE VOZ -->
 
         <div class="channel-category voice-category">
 
@@ -215,10 +200,10 @@
 
         <button
           id="voiceChannel"
-          class="channel"
+          class="channel voice-channel"
           type="button"
         >
-          <span class="channel-symbol">
+          <span class="channel-icon">
             🔊
           </span>
 
@@ -234,11 +219,12 @@
 
       <footer class="user-panel">
 
-        <div
-          id="userAvatar"
-          class="avatar"
-        >
-          T
+        <div class="avatar user-avatar">
+          <span id="userInitial">
+            T
+          </span>
+
+          <span class="status-indicator"></span>
         </div>
 
         <div class="user-information">
@@ -248,16 +234,16 @@
           </strong>
 
           <span>
-            ● En línea
+            En línea
           </span>
 
         </div>
 
         <button
           id="logoutBtn"
-          class="icon-button"
-          title="Cerrar sesión"
+          class="user-button"
           type="button"
+          title="Cerrar sesión"
         >
           ↪
         </button>
@@ -267,7 +253,9 @@
     </aside>
 
 
-    <!-- CHAT -->
+    <!-- ===================================================
+         CHAT
+         =================================================== -->
 
     <main class="chat">
 
@@ -283,10 +271,9 @@
           ☰
         </button>
 
-
         <div class="channel-title">
 
-          <span class="channel-title-symbol">
+          <span class="channel-hash">
             #
           </span>
 
@@ -349,12 +336,10 @@
       <section
         id="messages"
         class="messages"
-      >
-
-      </section>
+      ></section>
 
 
-      <!-- ESCRIBIR -->
+      <!-- COMPOSER -->
 
       <form
         id="messageForm"
@@ -372,7 +357,7 @@
         <input
           id="messageInput"
           type="text"
-          maxlength="1000"
+          maxlength="2000"
           autocomplete="off"
           placeholder="Escribe un mensaje en #general..."
         >
@@ -398,7 +383,9 @@
     </main>
 
 
-    <!-- MIEMBROS -->
+    <!-- ===================================================
+         MIEMBROS
+         =================================================== -->
 
     <aside
       id="membersPanel"
@@ -416,7 +403,7 @@
           A
         </div>
 
-        <div class="member-information">
+        <div class="member-info">
 
           <strong>
             Alex
@@ -428,7 +415,7 @@
 
         </div>
 
-        <i class="online"></i>
+        <span class="online-dot"></span>
 
       </div>
 
@@ -439,7 +426,7 @@
           M
         </div>
 
-        <div class="member-information">
+        <div class="member-info">
 
           <strong>
             Mario
@@ -451,7 +438,7 @@
 
         </div>
 
-        <i class="online"></i>
+        <span class="online-dot"></span>
 
       </div>
 
@@ -462,7 +449,7 @@
           L
         </div>
 
-        <div class="member-information">
+        <div class="member-info">
 
           <strong>
             Laura
@@ -474,7 +461,7 @@
 
         </div>
 
-        <i class="online"></i>
+        <span class="online-dot"></span>
 
       </div>
 
@@ -485,9 +472,9 @@
           T
         </div>
 
-        <div class="member-information">
+        <div class="member-info">
 
-          <strong>
+          <strong id="memberCurrentUser">
             Tú
           </strong>
 
@@ -497,7 +484,7 @@
 
         </div>
 
-        <i class="online"></i>
+        <span class="online-dot"></span>
 
       </div>
 
@@ -506,9 +493,9 @@
   </div>
 
 
-  <!-- =========================
-       LLAMADA
-       ========================= -->
+  <!-- =====================================================
+       LLAMADAS
+       ===================================================== -->
 
   <div
     id="callModal"
@@ -531,7 +518,7 @@
       </h2>
 
       <p id="callStatus">
-        Preparando llamada...
+        CatracVoice
       </p>
 
 
@@ -540,12 +527,18 @@
         class="video-area hidden"
       >
 
-        <div id="localVideoPlaceholder">
+        <div
+          id="videoPlaceholder"
+          class="video-placeholder"
+        >
           📹
+          <span>
+            Vista previa
+          </span>
         </div>
 
         <video
-          id="localVideo"
+          id="screenVideo"
           autoplay
           muted
           playsinline
@@ -600,7 +593,9 @@
   ></div>
 
 
-  <!-- JAVASCRIPT -->
+  <!-- =====================================================
+       JAVASCRIPT
+       ===================================================== -->
 
   <script src="app.js"></script>
 
