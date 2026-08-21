@@ -1,4 +1,3 @@
-```html
 <!doctype html>
 <html lang="es">
 <head>
@@ -7,500 +6,476 @@
   <meta name="theme-color" content="#0b0e14">
   <title>CatracVoice</title>
 
-  <!-- CSS externo -->
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<section id="login">
-  <div class="box">
-    <div class="logo">CV</div>
+  <!-- LOGIN -->
+  <section id="authScreen">
+    <div class="login-card">
+      <div class="logo">CV</div>
 
-    <h1>CatracVoice</h1>
+      <h1>CatracVoice</h1>
 
-    <p>Habla, juega y comparte con tus amigos.</p>
+      <p>
+        Habla, juega y comparte con tus amigos.
+      </p>
 
-    <form id="loginForm">
+      <form id="authForm">
 
-      <label>
-        CORREO
-        <input
-          id="email"
-          type="email"
-          placeholder="tu@email.com"
-          required
-        >
-      </label>
+        <label>
+          CORREO
+          <input
+            id="email"
+            type="email"
+            placeholder="tu@email.com"
+            required
+          >
+        </label>
 
-      <label>
-        CONTRASEÑA
-        <input
-          id="pass"
-          type="password"
-          minlength="8"
-          placeholder="Contraseña"
-          required
-        >
-      </label>
+        <label>
+          CONTRASEÑA
+          <input
+            id="password"
+            type="password"
+            minlength="8"
+            placeholder="Contraseña"
+            required
+          >
+        </label>
 
-      <button class="login">
-        Entrar
+        <button class="login" type="submit">
+          Entrar
+        </button>
+
+      </form>
+
+      <button id="registerBtn" class="secondary-button">
+        Crear cuenta
       </button>
 
-    </form>
-
-    <div class="demo">
-      Interfaz de prueba. El chat y las cuentas reales se conectarán después.
+      <div class="demo">
+        Interfaz de prueba de CatracVoice.
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
 
-<div id="app">
+  <!-- APP -->
+  <div id="app" class="hidden">
 
-  <!-- SERVIDORES -->
-  <aside class="servers">
+    <!-- SERVIDORES -->
+    <aside class="servers">
 
-    <button class="server active">
-      CV
-    </button>
+      <button class="server active">
+        CV
+      </button>
 
-    <button class="server">
-      🎮
-    </button>
+      <button class="server">
+        🎮
+      </button>
 
-    <button class="server">
-      ⚽
-    </button>
+      <button class="server">
+        ⚽
+      </button>
 
-    <button class="server">
-      🎵
-    </button>
+      <button class="server">
+        🎵
+      </button>
 
-    <button class="server add">
-      +
-    </button>
+      <button class="server add-server">
+        +
+      </button>
 
-  </aside>
+    </aside>
 
 
-  <!-- BARRA LATERAL -->
-  <aside class="sidebar">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
 
-    <header class="workspace">
+      <header class="workspace">
 
-      <div>
-        <div class="workspace-title">
-          CatracVoice
+        <div>
+          <div class="workspace-title">
+            CatracVoice
+          </div>
+
+          <span class="workspace-sub">
+            Grupo privado
+          </span>
         </div>
 
-        <span class="workspace-sub">
-          Grupo privado
-        </span>
-      </div>
+        <button id="groupMenu">
+          ⋯
+        </button>
 
-      <button>
-        ⋯
-      </button>
-
-    </header>
+      </header>
 
 
-    <div class="channels">
+      <div class="channels">
 
-      <div class="category">
+        <div class="category">
 
-        <span>
-          CANALES DE TEXTO
-        </span>
+          <span>
+            CANALES DE TEXTO
+          </span>
 
-        <button id="add">
-          +
+          <button id="addChannel">
+            +
+          </button>
+
+        </div>
+
+
+        <button
+          class="channel active"
+          data-channel="general"
+        >
+          <span class="channel-icon">#</span>
+          general
+        </button>
+
+
+        <button
+          class="channel"
+          data-channel="gaming"
+        >
+          <span class="channel-icon">#</span>
+          gaming
+        </button>
+
+
+        <button
+          class="channel"
+          data-channel="planes"
+        >
+          <span class="channel-icon">#</span>
+          planes
+        </button>
+
+
+        <div class="category voice">
+          <span>CANALES DE VOZ</span>
+        </div>
+
+
+        <button
+          class="channel voice-room"
+          id="voiceChannel"
+        >
+          🔊 Sala general
         </button>
 
       </div>
 
 
-      <button
-        class="channel active"
-        data-c="general"
-      >
-        <span class="channel-icon">
-          #
-        </span>
+      <!-- USUARIO -->
+      <footer class="user">
 
-        general
-      </button>
+        <div class="avatar">
+          T
+        </div>
 
+        <div class="user-info">
 
-      <button
-        class="channel"
-        data-c="gaming"
-      >
-        <span class="channel-icon">
-          #
-        </span>
-
-        gaming
-      </button>
-
-
-      <button
-        class="channel"
-        data-c="planes"
-      >
-        <span class="channel-icon">
-          #
-        </span>
-
-        planes
-      </button>
-
-
-      <div class="category voice">
-
-        <span>
-          CANALES DE VOZ
-        </span>
-
-      </div>
-
-
-      <button
-        class="channel voice-room"
-        id="voiceRoom"
-      >
-        🔊 Sala general
-      </button>
-
-    </div>
-
-
-    <!-- USUARIO -->
-    <footer class="user">
-
-      <div class="avatar">
-        T
-      </div>
-
-      <div class="user-info">
-
-        <strong id="name">
-          Tú
-        </strong>
-
-        <span class="status">
-          ● En línea
-        </span>
-
-      </div>
-
-      <button id="logout">
-        ↪
-      </button>
-
-    </footer>
-
-  </aside>
-
-
-  <!-- CHAT -->
-  <main class="chat">
-
-    <header class="header">
-
-      <button class="mobile">
-        ☰
-      </button>
-
-
-      <div class="title">
-
-        <span class="hash">
-          #
-        </span>
-
-        <div>
-
-          <strong id="channel">
-            general
+          <strong id="userName">
+            Tú
           </strong>
 
-          <span>
-            Habla con tus amigos
+          <span class="status">
+            ● En línea
           </span>
 
         </div>
 
+        <button id="logoutBtn">
+          ↪
+        </button>
+
+      </footer>
+
+    </aside>
+
+
+    <!-- CHAT -->
+    <main class="chat">
+
+      <header class="header">
+
+        <button
+          class="mobile"
+          id="mobileMenu"
+        >
+          ☰
+        </button>
+
+
+        <div class="title">
+
+          <span class="hash">
+            #
+          </span>
+
+          <div>
+
+            <strong id="channelTitle">
+              general
+            </strong>
+
+            <span>
+              Habla con tus amigos
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="actions">
+
+          <button
+            id="voiceCallBtn"
+            title="Llamada"
+          >
+            📞
+          </button>
+
+          <button
+            id="videoCallBtn"
+            title="Videollamada"
+          >
+            📹
+          </button>
+
+          <button
+            id="screenShareBtn"
+            title="Compartir pantalla"
+          >
+            🖥️
+          </button>
+
+          <button
+            id="membersBtn"
+            title="Miembros"
+          >
+            👥
+          </button>
+
+        </div>
+
+      </header>
+
+
+      <!-- MENSAJES -->
+      <section
+        class="messages"
+        id="messages"
+      ></section>
+
+
+      <!-- ESCRIBIR -->
+      <form
+        class="composer"
+        id="messageForm"
+      >
+
+        <button
+          type="button"
+          id="attachBtn"
+        >
+          +
+        </button>
+
+        <input
+          id="messageInput"
+          maxlength="1000"
+          placeholder="Escribe un mensaje..."
+          autocomplete="off"
+        >
+
+        <button
+          type="button"
+          id="emojiBtn"
+        >
+          ☺
+        </button>
+
+        <button type="submit">
+          ➤
+        </button>
+
+      </form>
+
+    </main>
+
+
+    <!-- MIEMBROS -->
+    <aside
+      class="members"
+      id="membersPanel"
+    >
+
+      <div class="members-title">
+        MIEMBROS — 4
       </div>
 
 
-      <div class="actions">
+      <div class="member">
 
-        <button
-          id="call"
-          title="Llamada"
-        >
-          📞
+        <div class="avatar green">
+          A
+        </div>
+
+        <div class="mi">
+
+          <strong>Alex</strong>
+          <span>En línea</span>
+
+        </div>
+
+        <i class="dot"></i>
+
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar purple">
+          M
+        </div>
+
+        <div class="mi">
+
+          <strong>Mario</strong>
+          <span>Jugando</span>
+
+        </div>
+
+        <i class="dot"></i>
+
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar orange">
+          L
+        </div>
+
+        <div class="mi">
+
+          <strong>Laura</strong>
+          <span>En línea</span>
+
+        </div>
+
+        <i class="dot"></i>
+
+      </div>
+
+
+      <div class="member">
+
+        <div class="avatar">
+          T
+        </div>
+
+        <div class="mi">
+
+          <strong>Tú</strong>
+          <span>En línea</span>
+
+        </div>
+
+        <i class="dot"></i>
+
+      </div>
+
+    </aside>
+
+  </div>
+
+
+  <!-- LLAMADA -->
+  <div
+    class="modal hidden"
+    id="callModal"
+  >
+
+    <div class="call">
+
+      <button
+        class="close"
+        id="closeCall"
+      >
+        ×
+      </button>
+
+      <h2 id="callTitle">
+        Videollamada
+      </h2>
+
+      <p id="callStatus">
+        Modo de prueba
+      </p>
+
+
+      <div
+        class="video hidden"
+        id="videoArea"
+      >
+
+        <div id="videoPlaceholder">
+          👤 Tú
+        </div>
+
+        <video
+          id="screenVideo"
+          autoplay
+          muted
+          playsinline
+        ></video>
+
+      </div>
+
+
+      <div class="controls">
+
+        <button id="muteBtn">
+          🎤
         </button>
 
-        <button
-          id="videoCall"
-          title="Vídeo"
-        >
+        <button id="cameraBtn">
           📹
         </button>
 
-        <button
-          id="screen"
-          title="Compartir pantalla"
-        >
+        <button id="modalScreenBtn">
           🖥️
         </button>
 
         <button
-          id="membersBtn"
-          title="Miembros"
+          class="end"
+          id="hangupBtn"
         >
-          👥
+          ☎
         </button>
 
       </div>
-
-    </header>
-
-
-    <!-- MENSAJES -->
-    <section
-      class="messages"
-      id="messages"
-    ></section>
-
-
-    <!-- ESCRIBIR MENSAJE -->
-    <form
-      class="composer"
-      id="form"
-    >
-
-      <button
-        type="button"
-        id="plus"
-      >
-        +
-      </button>
-
-      <input
-        id="message"
-        maxlength="1000"
-        placeholder="Escribe un mensaje..."
-        autocomplete="off"
-      >
-
-      <button
-        type="button"
-        id="emoji"
-      >
-        ☺
-      </button>
-
-      <button>
-        ➤
-      </button>
-
-    </form>
-
-  </main>
-
-
-  <!-- MIEMBROS -->
-  <aside
-    class="members"
-    id="members"
-  >
-
-    <div class="members-title">
-      MIEMBROS — 4
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar green">
-        A
-      </div>
-
-      <div class="mi">
-
-        <strong>
-          Alex
-        </strong>
-
-        <span>
-          En línea
-        </span>
-
-      </div>
-
-      <i class="dot"></i>
-
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar purple">
-        M
-      </div>
-
-      <div class="mi">
-
-        <strong>
-          Mario
-        </strong>
-
-        <span>
-          Jugando
-        </span>
-
-      </div>
-
-      <i class="dot"></i>
-
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar orange">
-        L
-      </div>
-
-      <div class="mi">
-
-        <strong>
-          Laura
-        </strong>
-
-        <span>
-          En línea
-        </span>
-
-      </div>
-
-      <i class="dot"></i>
-
-    </div>
-
-
-    <div class="member">
-
-      <div class="avatar">
-        T
-      </div>
-
-      <div class="mi">
-
-        <strong>
-          Tú
-        </strong>
-
-        <span>
-          En línea
-        </span>
-
-      </div>
-
-      <i class="dot"></i>
-
-    </div>
-
-  </aside>
-
-</div>
-
-
-<!-- LLAMADA / VÍDEO -->
-<div
-  class="modal"
-  id="modal"
->
-
-  <div class="call">
-
-    <button
-      class="close"
-      id="close"
-    >
-      ×
-    </button>
-
-
-    <h2 id="callTitle">
-      Videollamada
-    </h2>
-
-
-    <p id="callStatus">
-      Modo de prueba local
-    </p>
-
-
-    <div class="video">
-
-      <div id="placeholder">
-        👤 Tú
-      </div>
-
-      <video
-        id="screenVideo"
-        autoplay
-        muted
-        playsinline
-      ></video>
-
-    </div>
-
-
-    <div class="controls">
-
-      <button id="mute">
-        🎤
-      </button>
-
-      <button id="camera">
-        📹
-      </button>
-
-      <button id="modalScreen">
-        🖥️
-      </button>
-
-      <button
-        class="end"
-        id="hang"
-      >
-        ☎
-      </button>
 
     </div>
 
   </div>
 
-</div>
+
+  <!-- AVISOS -->
+  <div
+    class="toast"
+    id="toast"
+  ></div>
 
 
-<!-- TOAST -->
-<div
-  class="toast"
-  id="toast"
-></div>
-
-
-<!-- JAVASCRIPT -->
-<script src="app.js"></script>
+  <script src="app.js"></script>
 
 </body>
 </html>
-```
