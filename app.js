@@ -1,12 +1,11 @@
 /* =========================================================
    CATRACVOICE
-   app.js
-   Firebase Auth + Firestore + Firebase Storage
+   FIREBASE + SERVIDORES + CANALES + CHAT
    ========================================================= */
 
 
 /* =========================================================
-   CONFIGURACIÓN FIREBASE
+   FIREBASE
    ========================================================= */
 
 const firebaseConfig = {
@@ -19,72 +18,35 @@ const firebaseConfig = {
   measurementId: "G-0QTJETS9G5"
 };
 
-
-/* =========================================================
-   CARGAR FIREBASE AUTOMÁTICAMENTE
-   ========================================================= */
-
-function loadFirebaseScript(src) {
-  return new Promise((resolve, reject) => {
-
-    const existing = document.querySelector(
-      `script[src="${src}"]`
-    );
-
-    if (existing) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-
-    script.src = src;
-    script.onload = resolve;
-    script.onerror = reject;
-
-    document.head.appendChild(script);
-  });
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
 }
 
-
-async function loadFirebase() {
-
-  await loadFirebaseScript(
-    "https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
-  );
-
-  await loadFirebaseScript(
-    "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"
-  );
-
-  await loadFirebaseScript(
-    "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"
-  );
-
-  await loadFirebaseScript(
-    "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"
-  );
-}
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
 
 
 /* =========================================================
-   FIREBASE
+   VARIABLES
    ========================================================= */
-
-let auth;
-let db;
-let storage;
 
 let currentUser = null;
-let currentChannel = "general";
+let currentServer = null;
+let currentChannel = null;
 
+let unsubscribeServers = null;
+let unsubscribeChannels = null;
 let unsubscribeMessages = null;
+
+let micEnabled = true;
+let cameraEnabled = true;
 
 let screenStream = null;
 
 
 /* =========================================================
-   UTILIDADES
+   HELPERS
    ========================================================= */
 
 const $ = id => document.getElementById(id);
@@ -92,41 +54,11 @@ const $ = id => document.getElementById(id);
 
 function escapeHTML(text) {
 
-  const element =
-    document.createElement("div");
+  const element = document.createElement("div");
 
-  element.textContent =
-    text ?? "";
+  element.textContent = text;
 
   return element.innerHTML;
-}
-
-
-function formatFileSize(bytes) {
-
-  if (!bytes) return "0 B";
-
-  const units = [
-    "B",
-    "KB",
-    "MB",
-    "GB"
-  ];
-
-  let size = bytes;
-  let index = 0;
-
-  while (
-    size >= 1024 &&
-    index < units.length - 1
-  ) {
-
-    size /= 1024;
-    index++;
-
-  }
-
-  return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
 
@@ -136,167 +68,93 @@ function showToast(text) {
 
   if (!toast) return;
 
-  toast.textContent =
-    text;
+  toast.textContent = text;
 
   toast.classList.add("show");
 
   clearTimeout(window.toastTimer);
 
-  window.toastTimer =
-    setTimeout(() => {
+  window.toastTimer = setTimeout(() => {
 
-      toast.classList.remove("show");
+    toast.classList.remove("show");
 
-    }, 3000);
+  }, 2500);
 }
 
 
-/* =========================================================
-   ESTILOS PARA ARCHIVOS
-   ========================================================= */
+function formatTime(timestamp) {
 
-function addAttachmentStyles() {
+  if (!timestamp) return "";
 
-  if ($("attachmentStyles")) return;
+  let date;
 
-  const style =
-    document.createElement("style");
+  if (timestamp.toDate) {
 
-  style.id =
-    "attachmentStyles";
+    date = timestamp.toDate();
 
-  style.textContent = `
+  } else {
 
-    .message-attachment {
-      margin-top: 8px;
-      max-width: 420px;
-    }
-
-    .message-image {
-      display: block;
-      max-width: 100%;
-      max-height: 350px;
-      border-radius: 10px;
-      object-fit: contain;
-      background: #11151d;
-    }
-
-    .file-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 9px;
-      background: #202632;
-      border: 1px solid #30394a;
-      text-decoration: none;
-      color: white;
-      max-width: 350px;
-    }
-
-    .file-card:hover {
-      background: #293141;
-    }
-
-    .file-icon {
-      font-size: 25px;
-    }
-
-    .file-info {
-      min-width: 0;
-    }
-
-    .file-name {
-      display: block;
-      font-size: 13px;
-      font-weight: 700;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .file-size {
-      display: block;
-      margin-top: 2px;
-      color: #8d98aa;
-      font-size: 10px;
-    }
-
-    .upload-progress {
-      margin-top: 8px;
-      width: 100%;
-      height: 5px;
-      border-radius: 5px;
-      overflow: hidden;
-      background: #0b0e14;
-    }
-
-    .upload-progress-bar {
-      width: 0%;
-      height: 100%;
-      background: #5865f2;
-      transition: width .15s;
-    }
-
-    .uploading-message {
-      opacity: .7;
-    }
-
-  `;
-
-  document.head.appendChild(style);
-}
-
-
-/* =========================================================
-   INICIAR FIREBASE
-   ========================================================= */
-
-async function initializeFirebase() {
-
-  try {
-
-    await loadFirebase();
-
-    if (!firebase.apps.length) {
-
-      firebase.initializeApp(
-        firebaseConfig
-      );
-
-    }
-
-    auth =
-      firebase.auth();
-
-    db =
-      firebase.firestore();
-
-    storage =
-      firebase.storage();
-
-    console.log(
-      "Firebase iniciado correctamente."
-    );
-
-    addAttachmentStyles();
-
-    startApplication();
-
-  } catch (error) {
-
-    console.error(
-      "Error iniciando Firebase:",
-      error
-    );
-
-    showToast(
-      "No se ha podido conectar con Firebase."
-    );
+    date = new Date(timestamp);
 
   }
 
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+
+/* =========================================================
+   AUTENTICACIÓN
+   ========================================================= */
+
+auth.onAuthStateChanged(async user => {
+
+  if (user) {
+
+    currentUser = user;
+
+    await loadUserInterface();
+
+  } else {
+
+    currentUser = null;
+
+    showLogin();
+
+  }
+
+});
+
+
+function showLogin() {
+
+  const authScreen = $("authScreen");
+  const app = $("app");
+
+  if (authScreen) {
+    authScreen.classList.remove("hidden");
+  }
+
+  if (app) {
+    app.classList.add("hidden");
+  }
+}
+
+
+function showApp() {
+
+  const authScreen = $("authScreen");
+  const app = $("app");
+
+  if (authScreen) {
+    authScreen.classList.add("hidden");
+  }
+
+  if (app) {
+    app.classList.remove("hidden");
+  }
 }
 
 
@@ -304,39 +162,127 @@ async function initializeFirebase() {
    LOGIN
    ========================================================= */
 
-function setupAuthentication() {
+if ($("authForm")) {
 
-  const authForm =
-    $("authForm");
+  $("authForm").addEventListener("submit", async event => {
 
-  if (!authForm) return;
+    event.preventDefault();
+
+    const email = $("email").value.trim();
+    const password = $("password").value;
+
+    if (!email || !password) return;
+
+    try {
+
+      await auth.signInWithEmailAndPassword(
+        email,
+        password
+      );
+
+      showToast("Has iniciado sesión.");
+
+    } catch (error) {
+
+      console.error(error);
+
+      let message = "No se pudo iniciar sesión.";
+
+      if (
+        error.code ===
+        "auth/invalid-credential"
+      ) {
+        message = "Correo o contraseña incorrectos.";
+      }
+
+      if (
+        error.code ===
+        "auth/user-not-found"
+      ) {
+        message = "No existe una cuenta con ese correo.";
+      }
+
+      if (
+        error.code ===
+        "auth/wrong-password"
+      ) {
+        message = "Contraseña incorrecta.";
+      }
+
+      showToast(message);
+
+    }
+
+  });
+
+}
 
 
-  authForm.addEventListener(
-    "submit",
-    async event => {
+/* =========================================================
+   REGISTRO
+   ========================================================= */
 
-      event.preventDefault();
+if ($("registerBtn")) {
 
-      const email =
-        $("email").value.trim();
+  $("registerBtn").addEventListener(
+    "click",
+    async () => {
 
-      const password =
-        $("password").value;
+      const email = $("email").value.trim();
+      const password = $("password").value;
 
-      if (!email || !password)
+      if (!email || !password) {
+
+        showToast(
+          "Escribe primero tu correo y contraseña."
+        );
+
         return;
+      }
 
+      if (password.length < 8) {
+
+        showToast(
+          "La contraseña debe tener al menos 8 caracteres."
+        );
+
+        return;
+      }
 
       try {
 
-        showToast(
-          "Iniciando sesión..."
-        );
+        const result =
+          await auth.createUserWithEmailAndPassword(
+            email,
+            password
+          );
 
-        await auth.signInWithEmailAndPassword(
-          email,
-          password
+        const username =
+          email
+            .split("@")[0]
+            .replace(/[._-]/g, " ");
+
+        await db
+          .collection("users")
+          .doc(result.user.uid)
+          .set({
+
+            uid: result.user.uid,
+
+            email: email,
+
+            username:
+              username || "Usuario",
+
+            createdAt:
+              firebase.firestore.FieldValue.serverTimestamp()
+
+          }, {
+            merge: true
+          });
+
+        showToast(
+          "Cuenta creada correctamente."
         );
 
       } catch (error) {
@@ -344,45 +290,35 @@ function setupAuthentication() {
         console.error(error);
 
         let message =
-          "No se ha podido iniciar sesión.";
+          "No se pudo crear la cuenta.";
 
         if (
           error.code ===
-          "auth/invalid-credential"
+          "auth/email-already-in-use"
         ) {
 
           message =
-            "Correo o contraseña incorrectos.";
+            "Ese correo ya tiene una cuenta.";
 
         }
 
         if (
           error.code ===
-          "auth/user-not-found"
+          "auth/invalid-email"
         ) {
 
           message =
-            "No existe una cuenta con ese correo.";
+            "El correo no es válido.";
 
         }
 
         if (
           error.code ===
-          "auth/wrong-password"
+          "auth/weak-password"
         ) {
 
           message =
-            "Contraseña incorrecta.";
-
-        }
-
-        if (
-          error.code ===
-          "auth/too-many-requests"
-        ) {
-
-          message =
-            "Demasiados intentos. Espera un poco.";
+            "La contraseña es demasiado débil.";
 
         }
 
@@ -393,324 +329,494 @@ function setupAuthentication() {
     }
   );
 
-
-  const registerBtn =
-    $("registerBtn");
-
-  if (registerBtn) {
-
-    registerBtn.addEventListener(
-      "click",
-      registerUser
-    );
-
-  }
-
-
-  const logoutBtn =
-    $("logoutBtn");
-
-  if (logoutBtn) {
-
-    logoutBtn.addEventListener(
-      "click",
-      async () => {
-
-        try {
-
-          await auth.signOut();
-
-        } catch (error) {
-
-          console.error(error);
-
-        }
-
-      }
-    );
-
-  }
-
-
-  auth.onAuthStateChanged(
-    async user => {
-
-      currentUser =
-        user;
-
-      if (user) {
-
-        await enterApplication(user);
-
-      } else {
-
-        leaveApplication();
-
-      }
-
-    }
-  );
-
 }
 
 
 /* =========================================================
-   REGISTRO
+   CARGAR INTERFAZ DEL USUARIO
    ========================================================= */
 
-async function registerUser() {
+async function loadUserInterface() {
+
+  showApp();
 
   const email =
-    $("email").value.trim();
-
-  const password =
-    $("password").value;
-
-
-  if (!email) {
-
-    showToast(
-      "Escribe tu correo primero."
-    );
-
-    return;
-
-  }
-
-
-  if (password.length < 8) {
-
-    showToast(
-      "La contraseña debe tener al menos 8 caracteres."
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    showToast(
-      "Creando cuenta..."
-    );
-
-    const result =
-      await auth.createUserWithEmailAndPassword(
-        email,
-        password
-      );
-
-
-    const username =
-      email
-        .split("@")[0]
-        .replace(/[._-]/g, " ")
-        .trim();
-
-
-    await db
-      .collection("users")
-      .doc(result.user.uid)
-      .set({
-
-        uid: result.user.uid,
-
-        email: result.user.email,
-
-        username:
-          username || "Usuario",
-
-        createdAt:
-          firebase.firestore.FieldValue.serverTimestamp(),
-
-        online: true
-
-      }, {
-        merge: true
-      });
-
-
-    showToast(
-      "Cuenta creada correctamente."
-    );
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    let message =
-      "No se ha podido crear la cuenta.";
-
-    if (
-      error.code ===
-      "auth/email-already-in-use"
-    ) {
-
-      message =
-        "Ese correo ya tiene una cuenta.";
-
-    }
-
-    if (
-      error.code ===
-      "auth/invalid-email"
-    ) {
-
-      message =
-        "El correo no es válido.";
-
-    }
-
-    if (
-      error.code ===
-      "auth/weak-password"
-    ) {
-
-      message =
-        "La contraseña es demasiado débil.";
-
-    }
-
-    showToast(message);
-
-  }
-
-}
-
-
-/* =========================================================
-   ENTRAR EN LA APLICACIÓN
-   ========================================================= */
-
-async function enterApplication(user) {
-
-  $("authScreen")
-    ?.classList.add("hidden");
-
-  $("app")
-    ?.classList.remove("hidden");
-
+    currentUser.email || "";
 
   let username =
-    user.email
-      ?.split("@")[0]
-      ?.replace(/[._-]/g, " ")
-      ?.trim();
-
+    email
+      .split("@")[0]
+      .replace(/[._-]/g, " ");
 
   try {
 
     const userDoc =
       await db
         .collection("users")
-        .doc(user.uid)
+        .doc(currentUser.uid)
         .get();
-
 
     if (userDoc.exists) {
 
-      const data =
-        userDoc.data();
+      const data = userDoc.data();
 
-      username =
-        data.username ||
-        username;
+      if (data.username) {
+
+        username = data.username;
+
+      }
+
+    } else {
+
+      await db
+        .collection("users")
+        .doc(currentUser.uid)
+        .set({
+
+          uid: currentUser.uid,
+
+          email: email,
+
+          username:
+            username || "Usuario",
+
+          createdAt:
+            firebase.firestore.FieldValue.serverTimestamp()
+
+        }, {
+          merge: true
+        });
 
     }
 
   } catch (error) {
 
-    console.warn(
-      "No se pudo cargar el usuario:",
+    console.error(
+      "Error cargando usuario:",
       error
     );
 
   }
 
+  if ($("userName")) {
 
-  username =
-    username || "Tú";
-
-
-  $("userName").textContent =
-    username;
-
-  $("memberCurrentUser").textContent =
-    username;
-
-
-  const initial =
-    username
-      .charAt(0)
-      .toUpperCase();
-
-
-  $("userInitial").textContent =
-    initial;
-
-
-  try {
-
-    await db
-      .collection("users")
-      .doc(user.uid)
-      .set({
-
-        uid: user.uid,
-
-        email: user.email,
-
-        username,
-
-        online: true,
-
-        lastSeen:
-          firebase.firestore.FieldValue.serverTimestamp()
-
-      }, {
-        merge: true
-      });
-
-  } catch (error) {
-
-    console.warn(
-      "No se pudo actualizar el usuario:",
-      error
-    );
+    $("userName").textContent =
+      username || "Tú";
 
   }
 
+  if ($("memberCurrentUser")) {
 
-  loadChannels();
+    $("memberCurrentUser").textContent =
+      username || "Tú";
 
-  subscribeToMessages();
+  }
+
+  if ($("userInitial")) {
+
+    $("userInitial").textContent =
+      (username || "T")
+        .charAt(0)
+        .toUpperCase();
+
+  }
+
+  loadServers();
 
 }
 
 
 /* =========================================================
-   SALIR
+   SERVIDORES
    ========================================================= */
 
-function leaveApplication() {
+function loadServers() {
 
-  if (unsubscribeMessages) {
+  if (unsubscribeServers) {
 
-    unsubscribeMessages();
+    unsubscribeServers();
 
-    unsubscribeMessages =
-      null;
+  }
+
+  unsubscribeServers =
+    db
+      .collection("servers")
+      .where(
+        "memberIds",
+        "array-contains",
+        currentUser.uid
+      )
+      .onSnapshot(
+        snapshot => {
+
+          renderServers(snapshot);
+
+        },
+
+        error => {
+
+          console.error(
+            "Error cargando servidores:",
+            error
+          );
+
+          showToast(
+            "No se pudieron cargar los servidores."
+          );
+
+        }
+      );
+
+}
+
+
+function renderServers(snapshot) {
+
+  const container =
+    document.querySelector(".server-sidebar");
+
+  if (!container) return;
+
+  const addButton =
+    $("addServer");
+
+  container
+    .querySelectorAll(".server[data-server-id]")
+    .forEach(button => button.remove());
+
+  const servers = [];
+
+  snapshot.forEach(doc => {
+
+    servers.push({
+      id: doc.id,
+      ...doc.data()
+    });
+
+  });
+
+
+  /*
+     Crear botones dinámicamente
+  */
+
+  servers.forEach(server => {
+
+    const button =
+      document.createElement("button");
+
+    button.className =
+      "server";
+
+    button.dataset.serverId =
+      server.id;
+
+    button.title =
+      server.name || "Servidor";
+
+    button.textContent =
+      getServerInitial(
+        server.name
+      );
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        selectServer(server);
+
+      }
+    );
+
+    container.insertBefore(
+      button,
+      addButton
+    );
+
+  });
+
+
+  /*
+     Si todavía no tenemos servidor seleccionado
+  */
+
+  if (!currentServer && servers.length > 0) {
+
+    selectServer(servers[0]);
 
   }
 
 
-  $("app")
-    ?.classList.add("hidden");
+  /*
+     Si el servidor seleccionado fue eliminado
+  */
 
-  $("authScreen")
-    ?.classList.remove("hidden");
+  if (
+    currentServer &&
+    !servers.some(
+      server =>
+        server.id === currentServer.id
+    )
+  ) {
+
+    currentServer = null;
+
+    currentChannel = null;
+
+    clearChannels();
+
+  }
+
+}
+
+
+function getServerInitial(name) {
+
+  if (!name) return "CV";
+
+  const clean =
+    name.trim();
+
+  if (!clean) return "CV";
+
+  const words =
+    clean.split(/\s+/);
+
+  if (words.length >= 2) {
+
+    return (
+      words[0].charAt(0) +
+      words[1].charAt(0)
+    ).toUpperCase();
+
+  }
+
+  return clean
+    .substring(0, 2)
+    .toUpperCase();
+
+}
+
+
+/* =========================================================
+   CREAR SERVIDOR
+   ========================================================= */
+
+async function createServer() {
+
+  if (!currentUser) {
+
+    showToast(
+      "Primero tienes que iniciar sesión."
+    );
+
+    return;
+
+  }
+
+
+  const name =
+    prompt(
+      "¿Cómo quieres llamar al servidor?"
+    );
+
+
+  if (name === null) return;
+
+
+  const serverName =
+    name.trim();
+
+
+  if (!serverName) {
+
+    showToast(
+      "Escribe un nombre para el servidor."
+    );
+
+    return;
+
+  }
+
+
+  if (serverName.length > 50) {
+
+    showToast(
+      "El nombre es demasiado largo."
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    /*
+       Crear servidor
+    */
+
+    const serverRef =
+      await db
+        .collection("servers")
+        .add({
+
+          name: serverName,
+
+          ownerId:
+            currentUser.uid,
+
+          memberIds: [
+            currentUser.uid
+          ],
+
+          createdAt:
+            firebase.firestore.FieldValue
+              .serverTimestamp()
+
+        });
+
+
+    /*
+       Crear canal general
+    */
+
+    const channelRef =
+      await db
+        .collection("channels")
+        .add({
+
+          serverId:
+            serverRef.id,
+
+          name:
+            "general",
+
+          type:
+            "text",
+
+          createdAt:
+            firebase.firestore.FieldValue
+              .serverTimestamp()
+
+        });
+
+
+    /*
+       Guardamos el servidor seleccionado
+    */
+
+    const newServer = {
+
+      id: serverRef.id,
+
+      name: serverName,
+
+      ownerId:
+        currentUser.uid,
+
+      memberIds: [
+        currentUser.uid
+      ]
+
+    };
+
+
+    currentServer =
+      newServer;
+
+
+    showToast(
+      `Servidor "${serverName}" creado.`
+    );
+
+
+    /*
+       Cargar canales
+    */
+
+    await loadChannels(
+      serverRef.id
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Error creando servidor:",
+      error
+    );
+
+    showToast(
+      "No se pudo crear el servidor."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SELECCIONAR SERVIDOR
+   ========================================================= */
+
+async function selectServer(server) {
+
+  currentServer =
+    server;
+
+  currentChannel =
+    null;
+
+
+  document
+    .querySelectorAll(
+      ".server"
+    )
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.serverId ===
+          server.id
+      );
+
+    });
+
+
+  /*
+     Actualizar nombre
+  */
+
+  const workspace =
+    document.querySelector(
+      ".workspace-title"
+    );
+
+  if (workspace) {
+
+    workspace.textContent =
+      server.name;
+
+  }
+
+
+  const subtitle =
+    document.querySelector(
+      ".workspace-sub"
+    );
+
+  if (subtitle) {
+
+    subtitle.textContent =
+      "Servidor";
+
+  }
+
+
+  await loadChannels(
+    server.id
+  );
 
 }
 
@@ -719,302 +825,41 @@ function leaveApplication() {
    CANALES
    ========================================================= */
 
-async function loadChannels() {
+async function loadChannels(serverId) {
 
-  const container =
-    $("textChannels");
+  if (unsubscribeChannels) {
 
-  if (!container) return;
-
-
-  container.innerHTML =
-    `<div class="channel active"
-          style="padding:9px 10px">
-       <span class="channel-icon">#</span>
-       general
-     </div>`;
-
-
-  try {
-
-    const snapshot =
-      await db
-        .collection("channels")
-        .orderBy("name")
-        .get();
-
-
-    if (!snapshot.empty) {
-
-      container.innerHTML = "";
-
-
-      snapshot.forEach(doc => {
-
-        const channel =
-          doc.data();
-
-
-        const button =
-          document.createElement("button");
-
-
-        button.className =
-          "channel";
-
-
-        button.dataset.channel =
-          channel.name;
-
-
-        button.type =
-          "button";
-
-
-        button.innerHTML = `
-          <span class="channel-icon">#</span>
-          ${escapeHTML(channel.name)}
-        `;
-
-
-        container.appendChild(
-          button
-        );
-
-      });
-
-    }
-
-
-    ensureChannelExists();
-
-    attachChannelListeners();
-
-
-  } catch (error) {
-
-    console.warn(
-      "No se pudieron cargar los canales:",
-      error
-    );
-
-    createDefaultChannelUI();
+    unsubscribeChannels();
 
   }
 
-}
 
-
-/* =========================================================
-   CREAR CANAL GENERAL
-   ========================================================= */
-
-async function ensureChannelExists() {
-
-  try {
-
-    const ref =
-      db
-        .collection("channels")
-        .doc("general");
-
-
-    const doc =
-      await ref.get();
-
-
-    if (!doc.exists) {
-
-      await ref.set({
-
-        name: "general",
-
-        type: "text",
-
-        createdAt:
-          firebase.firestore.FieldValue.serverTimestamp(),
-
-        createdBy:
-          currentUser?.uid || null
-
-      });
-
-    }
-
-  } catch (error) {
-
-    console.warn(
-      "No se pudo crear general:",
-      error
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   INTERFAZ DE CANALES
-   ========================================================= */
-
-function createDefaultChannelUI() {
-
-  const container =
-    $("textChannels");
-
-  if (!container) return;
-
-
-  container.innerHTML = `
-
-    <button
-      class="channel active"
-      data-channel="general"
-      type="button"
-    >
-
-      <span class="channel-icon">
-        #
-      </span>
-
-      general
-
-    </button>
-
-  `;
-
-  attachChannelListeners();
-
-}
-
-
-function attachChannelListeners() {
-
-  document
-    .querySelectorAll("[data-channel]")
-    .forEach(button => {
-
-      button.onclick = () => {
-
-        currentChannel =
-          button.dataset.channel;
-
-        document
-          .querySelectorAll("[data-channel]")
-          .forEach(item => {
-
-            item.classList.toggle(
-              "active",
-              item === button
-            );
-
-          });
-
-
-        $("channelTitle")
-          .textContent =
-          currentChannel;
-
-
-        $("messageInput")
-          .placeholder =
-          `Escribe un mensaje en #${currentChannel}...`;
-
-
-        subscribeToMessages();
-
-      };
-
-    });
-
-}
-
-
-/* =========================================================
-   MENSAJES EN TIEMPO REAL
-   ========================================================= */
-
-function subscribeToMessages() {
-
-  if (!db) return;
-
-
-  if (unsubscribeMessages) {
-
-    unsubscribeMessages();
-
-    unsubscribeMessages =
-      null;
-
-  }
-
-
-  const container =
-    $("messages");
-
-  if (!container) return;
-
-
-  container.innerHTML = `
-    <div class="welcome">
-      <div class="welcome-icon">#</div>
-      <h2>
-        ¡Bienvenido a #${escapeHTML(currentChannel)}!
-      </h2>
-      <p>
-        Este es el comienzo del canal.
-      </p>
-    </div>
-  `;
-
-
-  unsubscribeMessages =
+  unsubscribeChannels =
     db
-      .collection("messages")
-      .orderBy("createdAt", "asc")
+      .collection("channels")
+      .where(
+        "serverId",
+        "==",
+        serverId
+      )
       .onSnapshot(
         snapshot => {
 
-          const messages =
-            [];
-
-
-          snapshot.forEach(doc => {
-
-            const data =
-              doc.data();
-
-
-            if (
-              data.channel ===
-              currentChannel
-            ) {
-
-              messages.push({
-                id: doc.id,
-                ...data
-              });
-
-            }
-
-          });
-
-
-          renderMessages(
-            messages
+          renderChannels(
+            snapshot
           );
 
         },
+
         error => {
 
           console.error(
-            "Error escuchando mensajes:",
+            "Error cargando canales:",
             error
           );
 
-
           showToast(
-            "No se pueden cargar los mensajes."
+            "No se pudieron cargar los canales."
           );
 
         }
@@ -1023,11 +868,246 @@ function subscribeToMessages() {
 }
 
 
+function renderChannels(snapshot) {
+
+  const container =
+    $("textChannels");
+
+  if (!container) return;
+
+
+  container.innerHTML = "";
+
+
+  const channels = [];
+
+
+  snapshot.forEach(doc => {
+
+    channels.push({
+      id: doc.id,
+      ...doc.data()
+    });
+
+  });
+
+
+  channels.forEach(channel => {
+
+    const button =
+      document.createElement("button");
+
+    button.className =
+      "channel";
+
+    button.dataset.channelId =
+      channel.id;
+
+    button.innerHTML = `
+      <span class="channel-icon">#</span>
+      <span>${escapeHTML(channel.name)}</span>
+    `;
+
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        selectChannel(channel);
+
+      }
+    );
+
+
+    container.appendChild(
+      button
+    );
+
+  });
+
+
+  /*
+     Seleccionar general automáticamente
+  */
+
+  if (!currentChannel && channels.length > 0) {
+
+    const general =
+      channels.find(
+        channel =>
+          channel.name === "general"
+      );
+
+    selectChannel(
+      general || channels[0]
+    );
+
+  }
+
+}
+
+
 /* =========================================================
-   RENDER MENSAJES
+   SELECCIONAR CANAL
    ========================================================= */
 
-function renderMessages(list) {
+async function selectChannel(channel) {
+
+  if (!channel) return;
+
+
+  currentChannel =
+    channel;
+
+
+  document
+    .querySelectorAll(
+      "#textChannels .channel"
+    )
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.channelId ===
+          channel.id
+      );
+
+    });
+
+
+  if ($("channelTitle")) {
+
+    $("channelTitle").textContent =
+      channel.name;
+
+  }
+
+
+  if ($("messageInput")) {
+
+    $("messageInput").placeholder =
+      `Escribe un mensaje en #${channel.name}...`;
+
+  }
+
+
+  renderMessages();
+
+
+  loadMessages(
+    channel.id
+  );
+
+}
+
+
+/* =========================================================
+   LIMPIAR CANALES
+   ========================================================= */
+
+function clearChannels() {
+
+  if ($("textChannels")) {
+
+    $("textChannels").innerHTML = "";
+
+  }
+
+  if ($("channelTitle")) {
+
+    $("channelTitle").textContent =
+      "general";
+
+  }
+
+  if ($("messages")) {
+
+    $("messages").innerHTML = "";
+
+  }
+
+}
+
+
+/* =========================================================
+   MENSAJES
+   ========================================================= */
+
+function loadMessages(channelId) {
+
+  if (unsubscribeMessages) {
+
+    unsubscribeMessages();
+
+  }
+
+
+  unsubscribeMessages =
+    db
+      .collection("messages")
+      .where(
+        "channelId",
+        "==",
+        channelId
+      )
+      .onSnapshot(
+        snapshot => {
+
+          const messages = [];
+
+          snapshot.forEach(doc => {
+
+            messages.push({
+              id: doc.id,
+              ...doc.data()
+            });
+
+          });
+
+
+          messages.sort(
+            (a, b) => {
+
+              const timeA =
+                a.createdAt?.toMillis
+                  ? a.createdAt.toMillis()
+                  : 0;
+
+              const timeB =
+                b.createdAt?.toMillis
+                  ? b.createdAt.toMillis()
+                  : 0;
+
+              return timeA - timeB;
+
+            }
+          );
+
+
+          renderMessages(
+            messages
+          );
+
+        },
+
+        error => {
+
+          console.error(
+            "Error cargando mensajes:",
+            error
+          );
+
+          showToast(
+            "No se pudieron cargar los mensajes."
+          );
+
+        }
+      );
+
+}
+
+
+function renderMessages(list = []) {
 
   const container =
     $("messages");
@@ -1035,25 +1115,67 @@ function renderMessages(list) {
   if (!container) return;
 
 
-  container.innerHTML = `
+  if (!list.length) {
 
-    <div class="welcome">
+    container.innerHTML = `
+      <div class="welcome">
 
-      <div class="welcome-icon">
-        #
+        <div class="welcome-icon">
+          #
+        </div>
+
+        <h2>
+          ¡Bienvenido a #${
+            escapeHTML(
+              currentChannel?.name ||
+              "general"
+            )
+          }!
+        </h2>
+
+        <p>
+          Este es el comienzo del canal.
+        </p>
+
       </div>
+    `;
 
-      <h2>
-        ¡Bienvenido a #${escapeHTML(currentChannel)}!
-      </h2>
+    return;
 
-      <p>
-        Este es el comienzo del canal.
-      </p>
+  }
 
+
+  container.innerHTML = "";
+
+
+  const welcome =
+    document.createElement("div");
+
+  welcome.className =
+    "welcome";
+
+  welcome.innerHTML = `
+    <div class="welcome-icon">
+      #
     </div>
 
+    <h2>
+      ¡Bienvenido a #${
+        escapeHTML(
+          currentChannel?.name ||
+          "general"
+        )
+      }!
+    </h2>
+
+    <p>
+      Este es el comienzo del canal.
+    </p>
   `;
+
+  container.appendChild(
+    welcome
+  );
 
 
   list.forEach(message => {
@@ -1061,52 +1183,22 @@ function renderMessages(list) {
     const article =
       document.createElement("article");
 
-
     article.className =
       "message";
 
 
-    const username =
-      message.username ||
-      "Usuario";
-
-
     const initial =
       message.initial ||
-      username.charAt(0).toUpperCase();
-
-
-    let time =
-      "";
-
-
-    if (
-      message.createdAt &&
-      message.createdAt.toDate
-    ) {
-
-      time =
-        message.createdAt
-          .toDate()
-          .toLocaleTimeString(
-            [],
-            {
-              hour: "2-digit",
-              minute: "2-digit"
-            }
-          );
-
-    } else if (message.time) {
-
-      time =
-        message.time;
-
-    }
+      (message.username || "T")
+        .charAt(0)
+        .toUpperCase();
 
 
     article.innerHTML = `
 
-      <div class="avatar ${escapeHTML(message.color || "")}">
+      <div class="avatar ${escapeHTML(
+        message.color || ""
+      )}">
         ${escapeHTML(initial)}
       </div>
 
@@ -1115,135 +1207,31 @@ function renderMessages(list) {
         <div class="message-meta">
 
           <strong>
-            ${escapeHTML(username)}
+            ${escapeHTML(
+              message.username ||
+              "Usuario"
+            )}
           </strong>
 
           <time>
-            ${escapeHTML(time)}
+            ${escapeHTML(
+              formatTime(
+                message.createdAt
+              )
+            )}
           </time>
 
         </div>
 
-        ${
-          message.text
-            ? `
-              <p class="message-text">
-                ${escapeHTML(message.text)}
-              </p>
-            `
-            : ""
-        }
+        <p class="message-text">
+          ${escapeHTML(
+            message.text || ""
+          )}
+        </p>
 
       </div>
 
     `;
-
-
-    const info =
-      article.querySelector(
-        ".message-info"
-      );
-
-
-    /* IMAGEN */
-
-    if (
-      message.type === "image" &&
-      message.fileUrl
-    ) {
-
-      const image =
-        document.createElement("img");
-
-
-      image.className =
-        "message-image message-attachment";
-
-
-      image.src =
-        message.fileUrl;
-
-
-      image.alt =
-        message.fileName ||
-        "Imagen";
-
-
-      image.loading =
-        "lazy";
-
-
-      image.onclick =
-        () => window.open(
-          message.fileUrl,
-          "_blank"
-        );
-
-
-      image.style.cursor =
-        "pointer";
-
-
-      info.appendChild(
-        image
-      );
-
-    }
-
-
-    /* ARCHIVO */
-
-    else if (
-      message.type === "file" &&
-      message.fileUrl
-    ) {
-
-      const link =
-        document.createElement("a");
-
-
-      link.className =
-        "file-card message-attachment";
-
-
-      link.href =
-        message.fileUrl;
-
-
-      link.target =
-        "_blank";
-
-
-      link.rel =
-        "noopener noreferrer";
-
-
-      link.innerHTML = `
-
-        <span class="file-icon">
-          📎
-        </span>
-
-        <span class="file-info">
-
-          <span class="file-name">
-            ${escapeHTML(message.fileName || "Archivo")}
-          </span>
-
-          <span class="file-size">
-            ${formatFileSize(message.fileSize)}
-          </span>
-
-        </span>
-
-      `;
-
-
-      info.appendChild(
-        link
-      );
-
-    }
 
 
     container.appendChild(
@@ -1260,33 +1248,16 @@ function renderMessages(list) {
 
 
 /* =========================================================
-   ENVIAR MENSAJES
+   ENVIAR MENSAJE
    ========================================================= */
 
-function setupMessages() {
+if ($("messageForm")) {
 
-  const form =
-    $("messageForm");
-
-  if (!form) return;
-
-
-  form.addEventListener(
+  $("messageForm").addEventListener(
     "submit",
     async event => {
 
       event.preventDefault();
-
-
-      const input =
-        $("messageInput");
-
-
-      const text =
-        input.value.trim();
-
-
-      if (!text) return;
 
 
       if (!currentUser) {
@@ -1300,25 +1271,71 @@ function setupMessages() {
       }
 
 
-      input.disabled =
-        true;
+      if (!currentServer) {
+
+        showToast(
+          "Selecciona un servidor."
+        );
+
+        return;
+
+      }
+
+
+      if (!currentChannel) {
+
+        showToast(
+          "Selecciona un canal."
+        );
+
+        return;
+
+      }
+
+
+      const input =
+        $("messageInput");
+
+      const text =
+        input.value.trim();
+
+
+      if (!text) return;
 
 
       try {
 
+        const userDoc =
+          await db
+            .collection("users")
+            .doc(currentUser.uid)
+            .get();
+
+
+        const userData =
+          userDoc.exists
+            ? userDoc.data()
+            : {};
+
+
         const username =
-          $("userName").textContent ||
-          "Tú";
+          userData.username ||
+          currentUser.email
+            ?.split("@")[0] ||
+          "Usuario";
 
 
         await db
           .collection("messages")
           .add({
 
-            channel:
-              currentChannel,
+            serverId:
+              currentServer.id,
 
-            uid:
+            channelId:
+              currentChannel.id,
+
+            userId:
               currentUser.uid,
 
             username:
@@ -1329,28 +1346,27 @@ function setupMessages() {
                 .charAt(0)
                 .toUpperCase(),
 
-            color:
-              "",
-
             text:
               text,
 
-            type:
-              "text",
-
             createdAt:
-              firebase.firestore.FieldValue.serverTimestamp()
+              firebase.firestore.FieldValue
+                .serverTimestamp()
 
           });
 
 
-        input.value =
-          "";
+        input.value = "";
+
+        input.focus();
 
 
       } catch (error) {
 
-        console.error(error);
+        console.error(
+          "Error enviando mensaje:",
+          error
+        );
 
         showToast(
           "No se pudo enviar el mensaje."
@@ -1358,310 +1374,8 @@ function setupMessages() {
 
       }
 
-
-      input.disabled =
-        false;
-
-      input.focus();
-
     }
   );
-
-
-  $("emojiBtn")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        $("messageInput").value +=
-          " 😊";
-
-        $("messageInput").focus();
-
-      }
-    );
-
-}
-
-
-/* =========================================================
-   ARCHIVOS
-   ========================================================= */
-
-function setupFileUpload() {
-
-  const attachBtn =
-    $("attachBtn");
-
-  if (!attachBtn) return;
-
-
-  const fileInput =
-    document.createElement("input");
-
-
-  fileInput.type =
-    "file";
-
-
-  fileInput.id =
-    "hiddenFileInput";
-
-
-  fileInput.style.display =
-    "none";
-
-
-  fileInput.multiple =
-    false;
-
-
-  document.body.appendChild(
-    fileInput
-  );
-
-
-  attachBtn.addEventListener(
-    "click",
-    () => {
-
-      if (!currentUser) {
-
-        showToast(
-          "Inicia sesión para subir archivos."
-        );
-
-        return;
-
-      }
-
-
-      fileInput.click();
-
-    }
-  );
-
-
-  fileInput.addEventListener(
-    "change",
-    async () => {
-
-      const file =
-        fileInput.files?.[0];
-
-
-      if (!file) return;
-
-
-      await uploadFile(file);
-
-
-      fileInput.value =
-        "";
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   SUBIR ARCHIVO A FIREBASE STORAGE
-   ========================================================= */
-
-async function uploadFile(file) {
-
-  if (!currentUser) {
-
-    showToast(
-      "Debes iniciar sesión."
-    );
-
-    return;
-
-  }
-
-
-  /*
-     Límite de 50 MB para evitar
-     subidas accidentales gigantes.
-  */
-
-  const MAX_SIZE =
-    50 * 1024 * 1024;
-
-
-  if (file.size > MAX_SIZE) {
-
-    showToast(
-      "El archivo no puede superar 50 MB."
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    showToast(
-      "Subiendo archivo..."
-    );
-
-
-    const safeName =
-      file.name
-        .replace(/[^\w.\- áéíóúÁÉÍÓÚñÑ()]/g, "_");
-
-
-    const path =
-      `uploads/${currentUser.uid}/${Date.now()}_${safeName}`;
-
-
-    const storageRef =
-      storage.ref().child(path);
-
-
-    const uploadTask =
-      storageRef.put(file);
-
-
-    await new Promise(
-      (resolve, reject) => {
-
-        uploadTask.on(
-          "state_changed",
-
-          snapshot => {
-
-            const percent =
-              Math.round(
-                (
-                  snapshot.bytesTransferred /
-                  snapshot.totalBytes
-                ) * 100
-              );
-
-
-            console.log(
-              `Subiendo: ${percent}%`
-            );
-
-          },
-
-          error => {
-
-            reject(error);
-
-          },
-
-          () => {
-
-            resolve();
-
-          }
-        );
-
-      }
-    );
-
-
-    const fileUrl =
-      await storageRef.getDownloadURL();
-
-
-    const username =
-      $("userName").textContent ||
-      "Tú";
-
-
-    const isImage =
-      file.type.startsWith(
-        "image/"
-      );
-
-
-    await db
-      .collection("messages")
-      .add({
-
-        channel:
-          currentChannel,
-
-        uid:
-          currentUser.uid,
-
-        username:
-          username,
-
-        initial:
-          username
-            .charAt(0)
-            .toUpperCase(),
-
-        color:
-          "",
-
-        text:
-          "",
-
-        type:
-          isImage
-            ? "image"
-            : "file",
-
-        fileName:
-          file.name,
-
-        fileUrl:
-          fileUrl,
-
-        filePath:
-          path,
-
-        fileSize:
-          file.size,
-
-        contentType:
-          file.type,
-
-        createdAt:
-          firebase.firestore.FieldValue.serverTimestamp()
-
-      });
-
-
-    showToast(
-      "Archivo enviado correctamente."
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Error subiendo archivo:",
-      error
-    );
-
-
-    if (
-      error.code ===
-      "storage/unauthorized"
-    ) {
-
-      showToast(
-        "Firebase Storage no permite esta subida. Revisa sus reglas."
-      );
-
-    } else {
-
-      showToast(
-        "No se pudo subir el archivo."
-      );
-
-    }
-
-  }
 
 }
 
@@ -1670,207 +1384,284 @@ async function uploadFile(file) {
    CREAR CANAL
    ========================================================= */
 
-function setupChannelCreation() {
+if ($("addChannel")) {
 
-  $("addChannel")
-    ?.addEventListener(
-      "click",
-      async () => {
+  $("addChannel").addEventListener(
+    "click",
+    async () => {
 
-        if (!currentUser) {
+      if (!currentServer) {
 
-          showToast(
-            "Inicia sesión primero."
-          );
+        showToast(
+          "Primero selecciona un servidor."
+        );
 
-          return;
-
-        }
-
-
-        const name =
-          prompt(
-            "Nombre del nuevo canal:"
-          );
-
-
-        if (!name) return;
-
-
-        const cleanName =
-          name
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace(/[^a-z0-9áéíóúñ_-]/gi, "");
-
-
-        if (!cleanName) {
-
-          showToast(
-            "Nombre de canal no válido."
-          );
-
-          return;
-
-        }
-
-
-        try {
-
-          await db
-            .collection("channels")
-            .doc(cleanName)
-            .set({
-
-              name:
-                cleanName,
-
-              type:
-                "text",
-
-              createdBy:
-                currentUser.uid,
-
-              createdAt:
-                firebase.firestore.FieldValue.serverTimestamp()
-
-            });
-
-
-          showToast(
-            `Canal #${cleanName} creado.`
-          );
-
-
-          await loadChannels();
-
-
-        } catch (error) {
-
-          console.error(error);
-
-          showToast(
-            "No se pudo crear el canal."
-          );
-
-        }
+        return;
 
       }
-    );
+
+
+      const name =
+        prompt(
+          "Nombre del nuevo canal:"
+        );
+
+
+      if (name === null) return;
+
+
+      const channelName =
+        name
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-");
+
+
+      if (!channelName) {
+
+        showToast(
+          "Escribe un nombre."
+        );
+
+        return;
+
+      }
+
+
+      try {
+
+        await db
+          .collection("channels")
+          .add({
+
+            serverId:
+              currentServer.id,
+
+            name:
+              channelName,
+
+            type:
+              "text",
+
+            createdAt:
+              firebase.firestore.FieldValue
+                .serverTimestamp()
+
+          });
+
+
+        showToast(
+          `#${channelName} creado.`
+        );
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        showToast(
+          "No se pudo crear el canal."
+        );
+
+      }
+
+    }
+  );
 
 }
 
 
 /* =========================================================
-   SERVIDORES
+   BOTÓN CREAR SERVIDOR
    ========================================================= */
 
-function setupServers() {
+if ($("addServer")) {
 
-  document
-    .querySelectorAll(".server")
-    .forEach(button => {
+  $("addServer").addEventListener(
+    "click",
+    createServer
+  );
 
-      button.addEventListener(
-        "click",
-        () => {
-
-          if (
-            button.classList.contains(
-              "add-server"
-            )
-          ) {
-
-            showToast(
-              "Crear servidores estará disponible próximamente."
-            );
-
-            return;
-
-          }
+}
 
 
-          document
-            .querySelectorAll(".server")
-            .forEach(item =>
-              item.classList.remove(
-                "active"
-              )
-            );
+/* =========================================================
+   EMOJI
+   ========================================================= */
+
+if ($("emojiBtn")) {
+
+  $("emojiBtn").addEventListener(
+    "click",
+    () => {
+
+      const input =
+        $("messageInput");
+
+      input.value += " 😊";
+
+      input.focus();
+
+    }
+  );
+
+}
 
 
-          button.classList.add(
-            "active"
-          );
+/* =========================================================
+   ADJUNTAR
+   ========================================================= */
 
-        }
+if ($("attachBtn")) {
+
+  $("attachBtn").addEventListener(
+    "click",
+    () => {
+
+      showToast(
+        "El sistema de archivos se conectará con Firebase Storage."
       );
 
-    });
+    }
+  );
 
 }
 
 
 /* =========================================================
-   MENÚ GRUPO
+   LOGOUT
    ========================================================= */
 
-function setupGroupMenu() {
+if ($("logoutBtn")) {
 
-  $("groupMenu")
-    ?.addEventListener(
+  $("logoutBtn").addEventListener(
+    "click",
+    async () => {
+
+      try {
+
+        if (unsubscribeServers)
+          unsubscribeServers();
+
+        if (unsubscribeChannels)
+          unsubscribeChannels();
+
+        if (unsubscribeMessages)
+          unsubscribeMessages();
+
+        await auth.signOut();
+
+      } catch (error) {
+
+        console.error(error);
+
+        showToast(
+          "No se pudo cerrar sesión."
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   MENÚ DEL GRUPO
+   ========================================================= */
+
+if ($("groupMenu")) {
+
+  $("groupMenu").addEventListener(
+    "click",
+    () => {
+
+      if (!currentServer) {
+
+        showToast(
+          "Selecciona un servidor."
+        );
+
+        return;
+
+      }
+
+      showToast(
+        `${currentServer.name} seleccionado.`
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   SERVIDORES DEMO ANTIGUOS
+   ========================================================= */
+
+document
+  .querySelectorAll(
+    ".server:not([data-server-id])"
+  )
+  .forEach(button => {
+
+    if (
+      button.id === "addServer"
+    ) return;
+
+
+    button.addEventListener(
       "click",
       () => {
 
         showToast(
-          "Configuración del grupo próximamente."
+          "Este servidor es de ejemplo. Crea uno con +."
         );
 
       }
     );
 
-}
+  });
 
 
 /* =========================================================
    MIEMBROS
    ========================================================= */
 
-function setupMembers() {
+if ($("membersBtn")) {
 
-  $("membersBtn")
-    ?.addEventListener(
-      "click",
-      () => {
+  $("membersBtn").addEventListener(
+    "click",
+    () => {
 
-        const panel =
-          $("membersPanel");
+      const panel =
+        $("membersPanel");
 
-
-        if (!panel) return;
+      if (!panel) return;
 
 
-        if (
-          window.innerWidth <= 1000
-        ) {
+      if (
+        window.innerWidth <= 1000
+      ) {
 
-          showToast(
-            "La lista de miembros está en el panel."
-          );
+        showToast(
+          "La lista de miembros aparecerá aquí."
+        );
 
-          return;
-
-        }
-
-
-        panel.style.display =
-          panel.style.display === "none"
-            ? ""
-            : "none";
+        return;
 
       }
-    );
+
+
+      panel.style.display =
+        panel.style.display === "none"
+          ? ""
+          : "none";
+
+    }
+  );
 
 }
 
@@ -1884,7 +1675,6 @@ function openCall(type) {
   const modal =
     $("callModal");
 
-
   if (!modal) return;
 
 
@@ -1895,138 +1685,154 @@ function openCall(type) {
 
   if (type === "voice") {
 
-    $("callTitle")
-      .textContent =
+    $("callTitle").textContent =
       "Llamada de voz";
 
-
-    $("callStatus")
-      .textContent =
-      "La conexión de voz real se añadirá mediante WebRTC.";
-
+    $("callStatus").textContent =
+      "La llamada real se conectará mediante WebRTC.";
 
     $("videoArea")
-      .classList.add(
-        "hidden"
-      );
+      ?.classList.add("hidden");
 
   }
 
 
   if (type === "video") {
 
-    $("callTitle")
-      .textContent =
+    $("callTitle").textContent =
       "Videollamada";
 
-
-    $("callStatus")
-      .textContent =
-      "La videollamada real se añadirá mediante WebRTC.";
-
+    $("callStatus").textContent =
+      "La videollamada real se conectará mediante WebRTC.";
 
     $("videoArea")
-      .classList.remove(
-        "hidden"
-      );
+      ?.classList.remove("hidden");
 
   }
 
 }
 
 
-function setupCalls() {
+if ($("voiceCallBtn")) {
 
-  $("voiceCallBtn")
-    ?.addEventListener(
-      "click",
-      () => openCall("voice")
-    );
-
-
-  $("videoCallBtn")
-    ?.addEventListener(
-      "click",
-      () => openCall("video")
-    );
-
-
-  $("voiceChannel")
-    ?.addEventListener(
-      "click",
-      () => openCall("voice")
-    );
-
-
-  $("closeCall")
-    ?.addEventListener(
-      "click",
-      closeCall
-    );
-
-
-  $("hangupBtn")
-    ?.addEventListener(
-      "click",
-      closeCall
-    );
-
-
-  $("muteBtn")
-    ?.addEventListener(
-      "click",
-      function () {
-
-        this.dataset.muted =
-          this.dataset.muted !== "true";
-
-
-        const muted =
-          this.dataset.muted === "true";
-
-
-        this.textContent =
-          muted
-            ? "🔇"
-            : "🎤";
-
-      }
-    );
-
-
-  $("cameraBtn")
-    ?.addEventListener(
-      "click",
-      function () {
-
-        this.dataset.off =
-          this.dataset.off !== "true";
-
-
-        const off =
-          this.dataset.off === "true";
-
-
-        this.textContent =
-          off
-            ? "🚫"
-            : "📹";
-
-      }
-    );
+  $("voiceCallBtn").addEventListener(
+    "click",
+    () => openCall("voice")
+  );
 
 }
 
 
-function closeCall() {
+if ($("videoCallBtn")) {
 
-  $("callModal")
-    ?.classList.add(
-      "hidden"
-    );
+  $("videoCallBtn").addEventListener(
+    "click",
+    () => openCall("video")
+  );
+
+}
 
 
-  stopScreen();
+if ($("voiceChannel")) {
+
+  $("voiceChannel").addEventListener(
+    "click",
+    () => openCall("voice")
+  );
+
+}
+
+
+if ($("closeCall")) {
+
+  $("closeCall").addEventListener(
+    "click",
+    () => {
+
+      $("callModal")
+        .classList.add("hidden");
+
+      stopScreen();
+
+    }
+  );
+
+}
+
+
+if ($("hangupBtn")) {
+
+  $("hangupBtn").addEventListener(
+    "click",
+    () => {
+
+      $("callModal")
+        .classList.add("hidden");
+
+      stopScreen();
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   MICRÓFONO
+   ========================================================= */
+
+if ($("muteBtn")) {
+
+  $("muteBtn").addEventListener(
+    "click",
+    function () {
+
+      micEnabled =
+        !micEnabled;
+
+      this.textContent =
+        micEnabled
+          ? "🎤"
+          : "🔇";
+
+      showToast(
+        micEnabled
+          ? "Micrófono activado"
+          : "Micrófono silenciado"
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   CÁMARA
+   ========================================================= */
+
+if ($("cameraBtn")) {
+
+  $("cameraBtn").addEventListener(
+    "click",
+    function () {
+
+      cameraEnabled =
+        !cameraEnabled;
+
+      this.textContent =
+        cameraEnabled
+          ? "📹"
+          : "🚫";
+
+      showToast(
+        cameraEnabled
+          ? "Cámara activada"
+          : "Cámara desactivada"
+      );
+
+    }
+  );
 
 }
 
@@ -2056,76 +1862,95 @@ async function shareScreen() {
     screenStream =
       await navigator.mediaDevices
         .getDisplayMedia({
+
           video: true,
+
           audio: true
+
         });
-
-
-    $("callModal")
-      ?.classList.remove(
-        "hidden"
-      );
-
-
-    $("callTitle")
-      .textContent =
-      "Compartiendo pantalla";
-
-
-    $("callStatus")
-      .textContent =
-      "Vista previa local";
-
-
-    $("videoArea")
-      ?.classList.remove(
-        "hidden"
-      );
-
-
-    $("videoPlaceholder")
-      ?.classList.add(
-        "hidden"
-      );
 
 
     const video =
       $("screenVideo");
 
 
-    video.srcObject =
-      screenStream;
+    const videoArea =
+      $("videoArea");
 
 
-    video.style.display =
-      "block";
+    const placeholder =
+      $("videoPlaceholder");
+
+
+    if (videoArea) {
+
+      videoArea.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    if (placeholder) {
+
+      placeholder.classList.add(
+        "hidden"
+      );
+
+    }
+
+
+    if (video) {
+
+      video.srcObject =
+        screenStream;
+
+      video.style.display =
+        "block";
+
+    }
+
+
+    $("callModal")
+      ?.classList.remove("hidden");
+
+
+    $("callTitle").textContent =
+      "Compartiendo pantalla";
+
+
+    $("callStatus").textContent =
+      "La pantalla se está compartiendo.";
 
 
     const track =
-      screenStream
-        .getVideoTracks()[0];
+      screenStream.getVideoTracks()[0];
 
 
-    track.addEventListener(
-      "ended",
-      () => {
+    if (track) {
 
-        stopScreen();
+      track.addEventListener(
+        "ended",
+        () => {
 
-        showToast(
-          "Has dejado de compartir la pantalla."
-        );
+          stopScreen();
 
-      }
-    );
+          showToast(
+            "Has dejado de compartir pantalla."
+          );
+
+        }
+      );
+
+    }
 
 
   } catch (error) {
 
-    console.log(error);
+    console.error(error);
 
     showToast(
-      "Has cancelado compartir la pantalla."
+      "Has cancelado compartir pantalla."
     );
 
   }
@@ -2143,8 +1968,7 @@ function stopScreen() {
         track.stop()
       );
 
-    screenStream =
-      null;
+    screenStream = null;
 
   }
 
@@ -2155,8 +1979,7 @@ function stopScreen() {
 
   if (video) {
 
-    video.srcObject =
-      null;
+    video.srcObject = null;
 
     video.style.display =
       "none";
@@ -2165,27 +1988,27 @@ function stopScreen() {
 
 
   $("videoPlaceholder")
-    ?.classList.remove(
-      "hidden"
-    );
+    ?.classList.remove("hidden");
 
 }
 
 
-function setupScreenShare() {
+if ($("screenShareBtn")) {
 
-  $("screenShareBtn")
-    ?.addEventListener(
-      "click",
-      shareScreen
-    );
+  $("screenShareBtn").addEventListener(
+    "click",
+    shareScreen
+  );
+
+}
 
 
-  $("modalScreenBtn")
-    ?.addEventListener(
-      "click",
-      shareScreen
-    );
+if ($("modalScreenBtn")) {
+
+  $("modalScreenBtn").addEventListener(
+    "click",
+    shareScreen
+  );
 
 }
 
@@ -2194,53 +2017,15 @@ function setupScreenShare() {
    MÓVIL
    ========================================================= */
 
-function setupMobile() {
+if ($("mobileMenu")) {
 
-  $("mobileMenu")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        showToast(
-          "El menú móvil estará disponible próximamente."
-        );
-
-      }
-    );
-
-}
-
-
-/* =========================================================
-   ESTADO ONLINE
-   ========================================================= */
-
-function setupPresence() {
-
-  if (!currentUser) return;
-
-
-  window.addEventListener(
-    "beforeunload",
+  $("mobileMenu").addEventListener(
+    "click",
     () => {
 
-      try {
-
-        db
-          .collection("users")
-          .doc(currentUser.uid)
-          .set({
-
-            online: false,
-
-            lastSeen:
-              firebase.firestore.FieldValue.serverTimestamp()
-
-          }, {
-            merge: true
-          });
-
-      } catch {}
+      showToast(
+        "Menú móvil próximamente."
+      );
 
     }
   );
@@ -2249,43 +2034,9 @@ function setupPresence() {
 
 
 /* =========================================================
-   INICIAR TODA LA APP
+   INICIO
    ========================================================= */
 
-function startApplication() {
-
-  setupAuthentication();
-
-  setupMessages();
-
-  setupFileUpload();
-
-  setupChannelCreation();
-
-  setupServers();
-
-  setupGroupMenu();
-
-  setupMembers();
-
-  setupCalls();
-
-  setupScreenShare();
-
-  setupMobile();
-
-}
-
-
-/* =========================================================
-   ARRANQUE
-   ========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    initializeFirebase();
-
-  }
+console.log(
+  "CatracVoice conectado a Firebase correctamente."
 );
