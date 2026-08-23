@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <meta name="theme-color" content="#111214">
 
   <title>CatracVoice</title>
@@ -13,17 +12,15 @@
 
 <body>
 
-  <!-- =====================================================
+  <!-- =========================
        LOGIN
-       ===================================================== -->
+       ========================= -->
 
   <section id="authScreen" class="auth-screen">
 
     <div class="auth-card">
 
-      <div class="logo">
-        CV
-      </div>
+      <div class="logo">CV</div>
 
       <h1>CatracVoice</h1>
 
@@ -33,9 +30,7 @@
 
       <form id="authForm">
 
-        <label for="email">
-          CORREO
-        </label>
+        <label for="email">CORREO</label>
 
         <input
           id="email"
@@ -45,9 +40,7 @@
           required
         >
 
-        <label for="password">
-          CONTRASEÑA
-        </label>
+        <label for="password">CONTRASEÑA</label>
 
         <input
           id="password"
@@ -60,7 +53,7 @@
 
         <button
           type="submit"
-          class="primary-button login-button"
+          class="primary-button"
         >
           Entrar
         </button>
@@ -76,7 +69,7 @@
       </button>
 
       <p class="demo-text">
-        Demo local de CatracVoice.
+        CatracVoice conectado a Firebase.
       </p>
 
     </div>
@@ -84,48 +77,33 @@
   </section>
 
 
-  <!-- =====================================================
-       APLICACIÓN
-       ===================================================== -->
+  <!-- =========================
+       APP
+       ========================= -->
 
   <div id="app" class="app hidden">
 
-    <!-- ===================================================
-         SERVIDORES
-         =================================================== -->
+    <!-- SERVIDORES -->
 
     <aside class="server-sidebar">
 
       <button
-        class="server active"
-        data-server="catracvoice"
-        title="CatracVoice"
+        class="server home-server active"
+        id="homeServer"
+        title="Inicio"
       >
         CV
       </button>
 
-      <button
-        class="server"
-        data-server="gaming"
-        title="Gaming"
-      >
-        🎮
-      </button>
-
-      <button
-        class="server"
-        data-server="friends"
-        title="Amigos"
-      >
-        👥
-      </button>
-
       <div class="server-separator"></div>
+
+      <div id="serverList"></div>
 
       <button
         id="addServer"
         class="server add-server"
         title="Añadir servidor"
+        type="button"
       >
         +
       </button>
@@ -133,9 +111,7 @@
     </aside>
 
 
-    <!-- ===================================================
-         SIDEBAR
-         =================================================== -->
+    <!-- SIDEBAR -->
 
     <aside class="sidebar">
 
@@ -143,10 +119,12 @@
 
         <div class="workspace-info">
 
-          <strong>CatracVoice</strong>
+          <strong id="workspaceName">
+            Amigos
+          </strong>
 
-          <span>
-            Grupo privado
+          <span id="workspaceSubtitle">
+            CatracVoice
           </span>
 
         </div>
@@ -155,7 +133,6 @@
           id="groupMenu"
           class="header-button"
           type="button"
-          title="Menú"
         >
           ⋯
         </button>
@@ -163,15 +140,62 @@
       </header>
 
 
-      <div class="channels-container">
+      <!-- INICIO / AMIGOS -->
 
-        <!-- CANALES DE TEXTO -->
+      <div
+        id="homeNavigation"
+        class="home-navigation"
+      >
+
+        <button
+          class="home-nav-button active"
+          data-home-view="friends"
+          type="button"
+        >
+          <span>👥</span>
+          <span>Amigos</span>
+        </button>
+
+        <button
+          class="home-nav-button"
+          data-home-view="online"
+          type="button"
+        >
+          <span>🟢</span>
+          <span>En línea</span>
+        </button>
+
+        <button
+          class="home-nav-button"
+          data-home-view="requests"
+          type="button"
+        >
+          <span>🔔</span>
+          <span>Solicitudes</span>
+        </button>
+
+        <button
+          class="home-nav-button"
+          data-home-view="activity"
+          type="button"
+        >
+          <span>🎮</span>
+          <span>Actividad</span>
+        </button>
+
+      </div>
+
+
+      <!-- CANALES -->
+
+      <div
+        id="serverNavigation"
+        class="server-navigation hidden"
+      >
 
         <div class="channel-category">
 
-          <span>
-            CANALES DE TEXTO
-          </span>
+          <span>CANALES DE TEXTO</span>
 
           <button
             id="addChannel"
@@ -183,33 +207,22 @@
 
         </div>
 
-
         <div id="textChannels"></div>
 
 
-        <!-- CANALES DE VOZ -->
-
         <div class="channel-category voice-category">
 
-          <span>
-            CANALES DE VOZ
-          </span>
+          <span>CANALES DE VOZ</span>
 
         </div>
-
 
         <button
           id="voiceChannel"
           class="channel voice-channel"
           type="button"
         >
-          <span class="channel-icon">
-            🔊
-          </span>
-
-          <span>
-            Sala general
-          </span>
+          <span class="channel-icon">🔊</span>
+          <span>Sala general</span>
         </button>
 
       </div>
@@ -219,25 +232,44 @@
 
       <footer class="user-panel">
 
-        <div class="avatar user-avatar">
-          <span id="userInitial">
-            T
-          </span>
+        <button
+          id="profileButton"
+          class="profile-button"
+          type="button"
+        >
 
-          <span class="status-indicator"></span>
-        </div>
+          <div class="avatar user-avatar">
 
-        <div class="user-information">
+            <img
+              id="userAvatar"
+              class="avatar-image hidden"
+              alt=""
+            >
 
-          <strong id="userName">
-            Tú
-          </strong>
+            <span id="userInitial">
+              T
+            </span>
 
-          <span>
-            En línea
-          </span>
+            <span
+              id="userStatusDot"
+              class="status-indicator online"
+            ></span>
 
-        </div>
+          </div>
+
+          <div class="user-information">
+
+            <strong id="userName">
+              Tú
+            </strong>
+
+            <span id="userActivity">
+              En línea
+            </span>
+
+          </div>
+
+        </button>
 
         <button
           id="logoutBtn"
@@ -253,13 +285,9 @@
     </aside>
 
 
-    <!-- ===================================================
-         CHAT
-         =================================================== -->
+    <!-- CONTENIDO PRINCIPAL -->
 
     <main class="chat">
-
-      <!-- CABECERA -->
 
       <header class="chat-header">
 
@@ -273,24 +301,26 @@
 
         <div class="channel-title">
 
-          <span class="channel-hash">
+          <span
+            id="channelHash"
+            class="channel-hash"
+          >
             #
           </span>
 
           <div>
 
             <strong id="channelTitle">
-              general
+              Amigos
             </strong>
 
-            <span>
-              Habla con tus amigos
+            <span id="channelDescription">
+              Conecta con tus amigos
             </span>
 
           </div>
 
         </div>
-
 
         <div class="chat-actions">
 
@@ -331,61 +361,103 @@
       </header>
 
 
-      <!-- MENSAJES -->
+      <!-- VISTA INICIO -->
 
       <section
-        id="messages"
-        class="messages"
-      ></section>
-
-
-      <!-- COMPOSER -->
-
-      <form
-        id="messageForm"
-        class="message-composer"
+        id="homeView"
+        class="home-view"
       >
 
-        <button
-          id="attachBtn"
-          type="button"
-          title="Adjuntar archivo"
-        >
-          +
-        </button>
+        <div class="home-top">
 
-        <input
-          id="messageInput"
-          type="text"
-          maxlength="2000"
-          autocomplete="off"
-          placeholder="Escribe un mensaje en #general..."
+          <div>
+
+            <h2 id="homeTitle">
+              Amigos
+            </h2>
+
+            <p>
+              Conecta con las personas que quieres.
+            </p>
+
+          </div>
+
+          <button
+            id="addFriendBtn"
+            class="primary-small-button"
+            type="button"
+          >
+            Añadir amigo
+          </button>
+
+        </div>
+
+
+        <div
+          id="homeContent"
+          class="home-content"
+        ></div>
+
+      </section>
+
+
+      <!-- CHAT -->
+
+      <section
+        id="chatView"
+        class="chat-view hidden"
+      >
+
+        <section
+          id="messages"
+          class="messages"
+        ></section>
+
+
+        <form
+          id="messageForm"
+          class="message-composer"
         >
 
-        <button
-          id="emojiBtn"
-          type="button"
-          title="Emoji"
-        >
-          ☺
-        </button>
+          <button
+            id="attachBtn"
+            type="button"
+            title="Adjuntar"
+          >
+            +
+          </button>
 
-        <button
-          class="send-button"
-          type="submit"
-          title="Enviar"
-        >
-          ➤
-        </button>
+          <input
+            id="messageInput"
+            type="text"
+            maxlength="2000"
+            autocomplete="off"
+            placeholder="Escribe un mensaje..."
+          >
 
-      </form>
+          <button
+            id="emojiBtn"
+            type="button"
+            title="Emoji"
+          >
+            ☺
+          </button>
+
+          <button
+            class="send-button"
+            type="submit"
+          >
+            ➤
+          </button>
+
+        </form>
+
+      </section>
 
     </main>
 
 
-    <!-- ===================================================
-         MIEMBROS
-         =================================================== -->
+    <!-- MIEMBROS -->
 
     <aside
       id="membersPanel"
@@ -393,109 +465,121 @@
     >
 
       <div class="members-title">
-        MIEMBROS — 4
+        MIEMBROS
       </div>
 
-
-      <div class="member">
-
-        <div class="avatar green">
-          A
-        </div>
-
-        <div class="member-info">
-
-          <strong>
-            Alex
-          </strong>
-
-          <span>
-            En línea
-          </span>
-
-        </div>
-
-        <span class="online-dot"></span>
-
-      </div>
-
-
-      <div class="member">
-
-        <div class="avatar purple">
-          M
-        </div>
-
-        <div class="member-info">
-
-          <strong>
-            Mario
-          </strong>
-
-          <span>
-            Jugando
-          </span>
-
-        </div>
-
-        <span class="online-dot"></span>
-
-      </div>
-
-
-      <div class="member">
-
-        <div class="avatar orange">
-          L
-        </div>
-
-        <div class="member-info">
-
-          <strong>
-            Laura
-          </strong>
-
-          <span>
-            En línea
-          </span>
-
-        </div>
-
-        <span class="online-dot"></span>
-
-      </div>
-
-
-      <div class="member">
-
-        <div class="avatar">
-          T
-        </div>
-
-        <div class="member-info">
-
-          <strong id="memberCurrentUser">
-            Tú
-          </strong>
-
-          <span>
-            En línea
-          </span>
-
-        </div>
-
-        <span class="online-dot"></span>
-
-      </div>
+      <div id="membersList"></div>
 
     </aside>
 
   </div>
 
 
-  <!-- =====================================================
+  <!-- =========================
+       PERFIL
+       ========================= -->
+
+  <div
+    id="profileModal"
+    class="modal hidden"
+  >
+
+    <div class="profile-window">
+
+      <button
+        id="closeProfile"
+        class="close-button"
+        type="button"
+      >
+        ×
+      </button>
+
+      <div class="profile-large-avatar">
+
+        <img
+          id="profileAvatarPreview"
+          class="avatar-image hidden"
+          alt=""
+        >
+
+        <span id="profileInitial">
+          T
+        </span>
+
+      </div>
+
+      <h2 id="profileName">
+        Usuario
+      </h2>
+
+      <p id="profileEmail">
+        usuario@email.com
+      </p>
+
+      <label>Nombre</label>
+
+      <input
+        id="profileUsername"
+        type="text"
+        maxlength="32"
+        placeholder="Nombre de usuario"
+      >
+
+      <label>Estado</label>
+
+      <select id="profileStatus">
+
+        <option value="online">
+          🟢 En línea
+        </option>
+
+        <option value="idle">
+          🟡 Ausente
+        </option>
+
+        <option value="dnd">
+          🔴 No molestar
+        </option>
+
+        <option value="offline">
+          ⚫ Invisible
+        </option>
+
+      </select>
+
+      <label>¿Qué estás haciendo?</label>
+
+      <input
+        id="profileActivity"
+        type="text"
+        maxlength="80"
+        placeholder="Jugando a Minecraft..."
+      >
+
+      <label>Foto de perfil</label>
+
+      <input
+        id="avatarFile"
+        type="file"
+        accept="image/*"
+      >
+
+      <button
+        id="saveProfile"
+        class="primary-button"
+        type="button"
+      >
+        Guardar cambios
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
        LLAMADAS
-       ===================================================== -->
+       ========================= -->
 
   <div
     id="callModal"
@@ -512,15 +596,13 @@
         ×
       </button>
 
-
       <h2 id="callTitle">
-        Llamada de voz
+        Llamada
       </h2>
 
       <p id="callStatus">
         CatracVoice
       </p>
-
 
       <div
         id="videoArea"
@@ -532,9 +614,7 @@
           class="video-placeholder"
         >
           📹
-          <span>
-            Vista previa
-          </span>
+          <span>Vista previa</span>
         </div>
 
         <video
@@ -546,27 +626,17 @@
 
       </div>
 
-
       <div class="call-controls">
 
-        <button
-          id="muteBtn"
-          type="button"
-        >
+        <button id="muteBtn" type="button">
           🎤
         </button>
 
-        <button
-          id="cameraBtn"
-          type="button"
-        >
+        <button id="cameraBtn" type="button">
           📹
         </button>
 
-        <button
-          id="modalScreenBtn"
-          type="button"
-        >
+        <button id="modalScreenBtn" type="button">
           🖥️
         </button>
 
@@ -587,22 +657,17 @@
 
   <!-- TOAST -->
 
-  <div
-    id="toast"
-    class="toast"
-  ></div>
+  <div id="toast" class="toast"></div>
 
 
-  <!-- =====================================================
-       JAVASCRIPT
-       ===================================================== -->
+  <!-- FIREBASE -->
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-<script src="app.js"></script>
-  
+  <script src="app.js"></script>
+
 </body>
 </html>
